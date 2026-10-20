@@ -1,0 +1,8 @@
+node_modules/
+.clasprc.json
+coverage/
+*.log
+~$*
+
+# Documentos internos del levantamiento (no se publican)
+*.docx

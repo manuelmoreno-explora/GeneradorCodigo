@@ -1,0 +1,9 @@
+{
+  "scriptId": "1h0pdhRumykzZOY0XIzz-Dch4M1NEkJsvjgFqqucBQ6BLKFgrQsEQP2gQ",
+  "rootDir": "src",
+  "scriptExtensions": [".js", ".gs"],
+  "htmlExtensions": [".html"],
+  "jsonExtensions": [".json"],
+  "filePushOrder": ["src/libs/pdf-lib.min.js"],
+  "skipSubdirectories": false
+}

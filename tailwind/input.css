@@ -1,0 +1,43 @@
+@import 'tailwindcss';
+@source '../src/frontend/**/*.html';
+@source '../src/frontend/**/*.js';
+
+/* Tokens de diseño. Colores de marca por confirmar con Gestión Documental. */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, 'Segoe UI', Roboto, sans-serif;
+  --color-brand-50: #eef6ff;
+  --color-brand-100: #d9eaff;
+  --color-brand-500: #2f6fed;
+  --color-brand-600: #1f57c9;
+  --color-brand-700: #1a46a1;
+  --color-ok: #15803d;
+  --color-warn: #b45309;
+  --color-danger: #b91c1c;
+  --radius-card: 0.75rem;
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.06), 0 4px 12px rgb(0 0 0 / 0.06);
+}
+
+@utility btn {
+  @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold
+      transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-600
+      disabled:cursor-not-allowed disabled:opacity-50;
+}
+@utility btn-primary {
+  @apply btn bg-brand-600 text-white hover:bg-brand-700;
+}
+@utility btn-secondary {
+  @apply btn border border-slate-300 bg-white text-slate-800 hover:bg-slate-50;
+}
+@utility card {
+  @apply rounded-card bg-white p-6 shadow-card;
+}
+@utility input {
+  @apply min-h-11 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm
+      focus-visible:outline-2 focus-visible:outline-brand-600;
+}
+
+@utility nav-item {
+  @apply min-h-11 whitespace-nowrap border-b-2 border-transparent px-4 text-sm font-medium text-slate-600
+    hover:text-slate-900 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-600
+    aria-[current=page]:border-brand-600 aria-[current=page]:text-brand-700;
+}

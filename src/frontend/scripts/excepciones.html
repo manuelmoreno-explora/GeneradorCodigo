@@ -1,0 +1,70 @@
+<script>
+  (function () {
+    const $ = Ui.$;
+
+    function alternarConfirmacion() {
+      const anula = $('x-tipo').value === 'ANULACION';
+      $('x-confirma-wrap').hidden = !anula;
+      if (!anula) $('x-confirma').checked = false;
+    }
+
+    async function cargarLista() {
+      const estado = $('x-lista-estado');
+      estado.textContent = 'Cargando…';
+      try {
+        const r = await Api.listarExcepciones();
+        if (!r.ok) throw new Error(r.mensaje);
+        const cuerpo = $('x-filas');
+        cuerpo.replaceChildren();
+        r.filas.forEach((x) => {
+          const tr = Ui.el('tr');
+          tr.appendChild(Ui.celda(x.fecha, 'whitespace-nowrap tabular-nums'));
+          tr.appendChild(Ui.celda(x.codigo, 'font-semibold tabular-nums'));
+          tr.appendChild(Ui.celda(x.descripcion, 'min-w-[12rem]'));
+          tr.appendChild(Ui.celda(x.accion_correctiva, 'min-w-[10rem]'));
+          tr.appendChild(Ui.celda(x.responsable, 'max-w-[12rem] truncate'));
+          tr.appendChild(Ui.celda(x.autorizado_por));
+          cuerpo.appendChild(tr);
+        });
+        $('x-tabla-wrap').hidden = r.filas.length === 0;
+        estado.textContent = r.filas.length ? '' : 'Aún no hay excepciones registradas.';
+      } catch (e) {
+        estado.textContent = e.message;
+      }
+    }
+
+    async function enviar(evento) {
+      evento.preventDefault();
+      const error = $('x-error');
+      error.hidden = true;
+      const boton = $('x-enviar');
+      boton.disabled = true;
+      boton.textContent = 'Registrando…';
+      try {
+        const r = await Api.registrarExcepcion({
+          codigo: $('x-codigo').value.trim(),
+          tipo: $('x-tipo').value,
+          descripcion: $('x-descripcion').value,
+          accion: $('x-accion').value,
+          autorizadoPor: $('x-autoriza').value,
+          confirmado: $('x-confirma').checked,
+        });
+        if (!r.ok) throw new Error(r.mensaje);
+        Ui.toast('Excepción registrada para ' + r.codigo);
+        $('form-excepcion').reset();
+        alternarConfirmacion();
+        cargarLista();
+      } catch (e) {
+        error.textContent = e.message;
+        error.hidden = false;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Registrar excepción';
+      }
+    }
+
+    $('x-tipo').addEventListener('change', alternarConfirmacion);
+    $('form-excepcion').addEventListener('submit', enviar);
+    document.addEventListener('pagina', (e) => { if (e.detail === 'excepciones') cargarLista(); });
+  })();
+</script>

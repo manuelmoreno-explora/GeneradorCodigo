@@ -1,0 +1,98 @@
+<script>
+  (function () {
+    const $ = Ui.$;
+
+    async function cargar() {
+      $('panel-carga').hidden = false;
+      $('panel-carga').textContent = 'Cargando…';
+      try {
+        const r = await Api.obtenerPanel();
+        if (!r.ok) throw new Error(r.mensaje);
+        const s = r.resumen;
+        $('panel-anio').textContent = s.anio;
+        $('p-contador').textContent = s.contador;
+        $('p-completadas').textContent = s.completadas;
+        $('p-anuladas').textContent = s.anuladas;
+        $('p-tipos').textContent = s.recepcion + ' / ' + s.entrega;
+        $('panel-cifras').hidden = false;
+        $('panel-validar').hidden = false;
+        $('panel-carga').hidden = true;
+        $('panel-ultima').textContent = r.ultimaValidacion
+          ? 'Última validación automática (' + r.ultimaValidacion.fecha + '): ' + r.ultimaValidacion.texto
+          : 'Aún no hay validación automática. Ejecuta instalarTriggerValidacion() en Apps Script para programarla.';
+        pintarAtascadas(r);
+      } catch (e) {
+        $('panel-carga').textContent = e.message;
+      }
+    }
+
+    function pintarAtascadas(r) {
+      $('panel-atascadas').hidden = !(r.puedeMantener && r.atascadas.length);
+      const lista = $('lista-atascadas');
+      lista.replaceChildren();
+      r.atascadas.forEach((a) => {
+        const li = Ui.el('li', 'flex flex-wrap items-center justify-between gap-2 py-3');
+        li.appendChild(Ui.el('span', 'font-semibold tabular-nums', a.codigo + ' · ' + Ui.etiquetaTipo(a.tipo) + ' · ' + a.usuario));
+        const b = Ui.el('button', 'btn-secondary', 'Resolver');
+        b.type = 'button';
+        b.addEventListener('click', async () => {
+          b.disabled = true;
+          const res = await Api.resolverReservaAtascada(a.codigo).catch((e) => ({ ok: false, mensaje: e.message }));
+          Ui.toast(res.mensaje);
+          cargar();
+        });
+        li.appendChild(b);
+        lista.appendChild(li);
+      });
+    }
+
+    function pintarValidacion(v, texto) {
+      const caja = $('validacion-resultado');
+      caja.hidden = false;
+      caja.replaceChildren();
+      const ok = v.ok;
+      caja.className = 'mt-4 rounded-lg p-4 ' + (ok ? 'bg-green-50 text-green-900' : 'bg-red-50 text-red-900');
+      caja.appendChild(Ui.el('p', 'font-semibold', (ok ? '✔ ' : '✖ ') + texto));
+      const detalle = (titulo, items) => {
+        if (!items.length) return;
+        caja.appendChild(Ui.el('p', 'mt-2 text-sm', titulo + ': ' + items.join(', ')));
+      };
+      detalle('Consecutivos faltantes', v.faltantes);
+      detalle('Consecutivos duplicados', v.duplicados);
+      detalle('Reservas sin completar', v.reservadasSinCompletar);
+      detalle('Anuladas (cuentan en la secuencia)', v.anuladas);
+    }
+
+    $('btn-validar').addEventListener('click', async (e) => {
+      const b = e.currentTarget;
+      b.disabled = true;
+      b.textContent = 'Validando…';
+      try {
+        const r = await Api.validarSecuencia();
+        if (!r.ok) throw new Error(r.mensaje);
+        pintarValidacion(r.validacion, r.texto);
+      } catch (err) {
+        Ui.toast(err.message);
+      } finally {
+        b.disabled = false;
+        b.textContent = 'Validar ahora';
+      }
+    });
+
+    $('btn-csv').addEventListener('click', async (e) => {
+      const b = e.currentTarget;
+      b.disabled = true;
+      try {
+        const r = await Api.exportarRegistroCsv();
+        if (!r.ok) throw new Error(r.mensaje);
+        Ui.descargarTexto(r.nombre, r.csv);
+      } catch (err) {
+        Ui.toast(err.message);
+      } finally {
+        b.disabled = false;
+      }
+    });
+
+    document.addEventListener('pagina', (e) => { if (e.detail === 'panel') cargar(); });
+  })();
+</script>

@@ -1,0 +1,127 @@
+<!-- Vista 1: formulario -->
+<section id="vista-formulario" aria-labelledby="titulo-form">
+  <h1 id="titulo-form" class="text-2xl font-bold">Nueva operación</h1>
+  <p class="mt-1 text-slate-600">Asigna el código al documento, lo estampa en el PDF y lo archiva en Drive.</p>
+
+  <form id="form" class="mt-6 space-y-6" novalidate>
+    <!-- Paso 1 -->
+    <fieldset class="card">
+      <legend class="sr-only">Paso 1: tipo de operación</legend>
+      <h2 class="flex items-center gap-2 text-lg font-semibold">
+        <span class="grid size-7 place-items-center rounded-full bg-brand-600 text-sm text-white" aria-hidden="true">1</span>
+        Tipo de operación
+      </h2>
+      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+        <label class="group relative flex min-h-16 cursor-pointer items-center gap-3 rounded-lg border border-slate-300 p-4 transition hover:border-brand-500 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600">
+          <input type="radio" name="tipo" value="RECEPCION" class="size-5 accent-brand-600" />
+          <span>
+            <span class="block font-semibold">Recepción</span>
+            <span class="block text-sm text-slate-600">Correspondencia recibida</span>
+          </span>
+        </label>
+        <label class="group relative flex min-h-16 cursor-pointer items-center gap-3 rounded-lg border border-slate-300 p-4 transition hover:border-brand-500 has-[:checked]:border-brand-600 has-[:checked]:bg-brand-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600">
+          <input type="radio" name="tipo" value="ENTREGA" class="size-5 accent-brand-600" />
+          <span>
+            <span class="block font-semibold">Entrega</span>
+            <span class="block text-sm text-slate-600">Correspondencia enviada</span>
+          </span>
+        </label>
+      </div>
+    </fieldset>
+
+    <!-- Paso 2 -->
+    <div class="card">
+      <h2 class="flex items-center gap-2 text-lg font-semibold">
+        <span class="grid size-7 place-items-center rounded-full bg-brand-600 text-sm text-white" aria-hidden="true">2</span>
+        Documento PDF
+      </h2>
+
+      <div id="zona-carga" class="mt-4">
+        <label for="archivo" id="dropzone"
+          class="flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 p-6 text-center transition hover:border-brand-500 hover:bg-brand-50 has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-brand-600 data-[arrastrando=true]:border-brand-600 data-[arrastrando=true]:bg-brand-50">
+          <svg class="size-9 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M12 16V4m0 0 4 4m-4-4L8 8M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="font-semibold">Arrastra el PDF aquí o <span class="text-brand-700 underline">elige un archivo</span></span>
+          <span class="text-sm text-slate-600" id="ayuda-archivo">Un solo archivo PDF, máximo <span id="max-mb"></span> MB.</span>
+          <input id="archivo" type="file" accept="application/pdf,.pdf" class="sr-only" aria-describedby="ayuda-archivo error-archivo" />
+        </label>
+      </div>
+
+      <div id="archivo-elegido" hidden class="mt-4 flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+        <div class="min-w-0">
+          <p id="archivo-nombre" class="truncate font-medium"></p>
+          <p id="archivo-tamano" class="text-sm text-slate-600"></p>
+        </div>
+        <button type="button" id="quitar-archivo" class="btn-secondary shrink-0">Quitar</button>
+      </div>
+
+      <p id="error-archivo" role="alert" class="mt-3 text-sm font-medium text-danger" hidden></p>
+    </div>
+
+    <!-- Paso 3 -->
+    <div class="card">
+      <h2 class="flex items-center gap-2 text-lg font-semibold">
+        <span class="grid size-7 place-items-center rounded-full bg-brand-600 text-sm text-white" aria-hidden="true">3</span>
+        Confirmar
+      </h2>
+      <dl class="mt-4 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-[auto_1fr]">
+        <dt class="text-slate-600">Operación</dt>
+        <dd id="resumen-tipo" class="font-medium">—</dd>
+        <dt class="text-slate-600">Documento</dt>
+        <dd id="resumen-archivo" class="truncate font-medium">—</dd>
+      </dl>
+      <p class="mt-4 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+        Se asignará el siguiente código y el PDF se archivará en Drive. Si el proceso falla, no se consume ningún código.
+      </p>
+      <button type="submit" id="generar" class="btn-primary mt-4 w-full sm:w-auto" disabled>Generar código y archivar</button>
+    </div>
+  </form>
+</section>
+
+<!-- Vista 2: procesando -->
+<section id="vista-proceso" hidden class="card mt-6 text-center" aria-live="polite">
+  <div class="mx-auto size-12 animate-spin rounded-full border-4 border-slate-200 border-t-brand-600" aria-hidden="true"></div>
+  <h2 class="mt-4 text-xl font-semibold">Procesando…</h2>
+  <p id="proceso-detalle" class="mt-1 text-slate-600">Asignando el código y estampando el PDF.</p>
+  <p class="mt-4 text-sm text-slate-600">No cierres esta ventana.</p>
+</section>
+
+<!-- Vista 3: éxito -->
+<section id="vista-exito" hidden class="card mt-6" aria-labelledby="titulo-exito">
+  <div class="flex items-center gap-2 text-ok">
+    <svg class="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m5 13 4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <h2 id="titulo-exito" class="text-lg font-semibold">Operación registrada</h2>
+  </div>
+  <p class="mt-4 text-sm text-slate-600">Código asignado</p>
+  <p id="exito-codigo" class="text-5xl font-bold tracking-tight text-brand-700 sm:text-6xl"></p>
+  <p id="exito-nombre" class="mt-2 break-words text-sm text-slate-700"></p>
+
+  <div class="mt-6 flex flex-wrap gap-3">
+    <button type="button" id="btn-imprimir" class="btn-primary">Imprimir ejemplar de entrega</button>
+    <button type="button" id="btn-descargar" class="btn-secondary">Descargar PDF</button>
+    <a id="btn-drive" href="#" target="_blank" rel="noopener" class="btn-secondary">Ver en Drive</a>
+    <button type="button" id="btn-copiar" class="btn-secondary">Copiar código</button>
+    <button type="button" id="btn-correo" hidden class="btn-secondary" aria-expanded="false" aria-controls="form-correo">Enviar por correo</button>
+  </div>
+
+  <form id="form-correo" hidden class="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4" novalidate>
+    <label for="correo-destino" class="mb-1 block text-sm font-medium">Correo de quien recibe el documento</label>
+    <div class="flex flex-col gap-2 sm:flex-row">
+      <input id="correo-destino" type="email" class="input" maxlength="254" autocomplete="off" placeholder="nombre@empresa.com" aria-describedby="correo-ayuda correo-estado" required />
+      <button type="submit" id="correo-enviar" class="btn-primary shrink-0">Enviar</button>
+    </div>
+    <p id="correo-ayuda" class="mt-2 text-sm text-slate-600">Se enviará el PDF con el código estampado, desde tu cuenta. Revisa bien la dirección: un envío no se puede deshacer.</p>
+    <p id="correo-estado" role="status" aria-live="polite" class="mt-2 text-sm font-medium"></p>
+  </form>
+
+  <p class="mt-4 text-sm text-slate-600">El PDF archivado en Drive y el ejemplar de entrega llevan el mismo código. El ejemplar de entrega no se guarda aparte.</p>
+
+  <button type="button" id="btn-nueva" class="btn-primary mt-6">Nueva operación</button>
+</section>
+
+<!-- Vista 4: error -->
+<section id="vista-error" hidden class="card mt-6 border border-red-200" role="alert" aria-labelledby="titulo-error">
+  <h2 id="titulo-error" class="text-lg font-semibold text-danger">No se pudo completar</h2>
+  <p id="error-mensaje" class="mt-2"></p>
+  <p class="mt-2 text-sm text-slate-600">No se asignó ningún código: la secuencia no se alteró.</p>
+  <button type="button" id="btn-reintentar" class="btn-primary mt-4">Volver al formulario</button>
+</section>

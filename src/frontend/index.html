@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <base target="_top" />
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <?!= include('frontend/styles/tailwind.generated') ?>
+  </head>
+  <body class="min-h-screen bg-slate-50 font-sans text-slate-900 antialiased">
+    <a href="#contenido" class="sr-only focus:not-sr-only focus:absolute focus:left-2 focus:top-2 focus:z-50 focus:rounded focus:bg-white focus:px-3 focus:py-2">Saltar al contenido</a>
+
+    <?!= include('frontend/components/header') ?>
+    <?!= include('frontend/components/nav') ?>
+
+    <main id="contenido" class="mx-auto w-full max-w-5xl px-4 py-6 sm:px-6 sm:py-10">
+      <div id="pagina-operacion" data-pagina="operacion" class="mx-auto max-w-3xl">
+        <?!= include('frontend/pages/operacion') ?>
+      </div>
+      <?!= include('frontend/pages/buscar') ?>
+      <?!= include('frontend/pages/excepciones') ?>
+      <?!= include('frontend/pages/panel') ?>
+    </main>
+
+    <?!= include('frontend/components/toast') ?>
+
+    <script>
+      window.APP_CONFIG = {
+        maxMB: <?= maxMB ?>,
+        ambiente: '<?= ambiente ?>',
+        usuario: '<?= usuario ?>',
+        puedeExcepciones: <?= puedeExcepciones ?>,
+        correoHabilitado: <?= correoHabilitado ?>,
+      };
+    </script>
+    <?!= include('frontend/scripts/api-client') ?>
+    <?!= include('frontend/scripts/nav') ?>
+    <?!= include('frontend/scripts/operacion') ?>
+    <?!= include('frontend/scripts/buscar') ?>
+    <?!= include('frontend/scripts/excepciones') ?>
+    <?!= include('frontend/scripts/panel') ?>
+    <script>Nav.iniciar();</script>
+  </body>
+</html>

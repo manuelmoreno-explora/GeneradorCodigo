@@ -1,0 +1,66 @@
+<script>
+  /** Utilidades compartidas y navegación entre páginas (sin recargar). */
+  const Ui = {
+    $: (id) => document.getElementById(id),
+
+    /** Crea un elemento con texto seguro (textContent, nunca innerHTML). */
+    el(etiqueta, clases, texto) {
+      const e = document.createElement(etiqueta);
+      if (clases) e.className = clases;
+      if (texto !== undefined && texto !== null) e.textContent = texto;
+      return e;
+    },
+
+    celda(texto, clases) {
+      return Ui.el('td', 'px-4 py-3 ' + (clases || ''), texto);
+    },
+
+    insignia(estado) {
+      const mapa = {
+        COMPLETADA: ['Completada', 'bg-green-100 text-green-900'],
+        ANULADA: ['Anulada', 'bg-red-100 text-red-900'],
+        RESERVADO: ['En proceso', 'bg-amber-100 text-amber-900'],
+      };
+      const [texto, clases] = mapa[estado] || [estado, 'bg-slate-100 text-slate-800'];
+      return Ui.el('span', 'inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ' + clases, texto);
+    },
+
+    etiquetaTipo: (t) => ({ RECEPCION: 'Recepción', ENTREGA: 'Entrega' }[t] || t),
+
+    toast(mensaje) {
+      const t = Ui.$('toast');
+      t.textContent = mensaje;
+      t.hidden = false;
+      clearTimeout(Ui._t);
+      Ui._t = setTimeout(() => { t.hidden = true; }, 3500);
+    },
+
+    descargarTexto(nombre, texto, tipo) {
+      const url = URL.createObjectURL(new Blob(['﻿', texto], { type: tipo || 'text/csv;charset=utf-8' }));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    },
+  };
+
+  const Nav = {
+    ir(nombre) {
+      document.querySelectorAll('[data-pagina]').forEach((p) => { p.hidden = p.dataset.pagina !== nombre; });
+      document.querySelectorAll('[data-ir]').forEach((b) => {
+        if (b.dataset.ir === nombre) b.setAttribute('aria-current', 'page');
+        else b.removeAttribute('aria-current');
+      });
+      document.dispatchEvent(new CustomEvent('pagina', { detail: nombre }));
+      window.scrollTo({ top: 0 });
+    },
+    iniciar() {
+      Ui.$('nav-excepciones').hidden = !window.APP_CONFIG.puedeExcepciones;
+      document.querySelectorAll('[data-ir]').forEach((b) => b.addEventListener('click', () => Nav.ir(b.dataset.ir)));
+      Nav.ir('operacion');
+    },
+  };
+</script>

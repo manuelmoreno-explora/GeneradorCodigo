@@ -1,0 +1,24 @@
+<script>
+  /** Cliente del backend: envuelve google.script.run en promesas. Sin lógica de negocio. */
+  const Api = {
+    llamar(nombre, ...args) {
+      return new Promise((resolver, rechazar) => {
+        google.script.run
+          .withSuccessHandler(resolver)
+          .withFailureHandler((e) => rechazar(new Error((e && e.message) || 'Error de comunicación con el servidor.')))
+          [nombre](...args);
+      });
+    },
+    iniciarOperacion: (payload) => Api.llamar('iniciarOperacion', payload),
+    estadoOperacion: (opId) => Api.llamar('estadoOperacion', opId),
+    enviarEjemplarPorCorreo: (d) => Api.llamar('enviarEjemplarPorCorreo', d),
+    obtenerEjemplar: (codigo) => Api.llamar('obtenerEjemplar', codigo),
+    buscarOperaciones: (f) => Api.llamar('buscarOperaciones', f),
+    obtenerPanel: () => Api.llamar('obtenerPanel'),
+    validarSecuencia: (anio) => Api.llamar('validarSecuencia', anio),
+    exportarRegistroCsv: () => Api.llamar('exportarRegistroCsv'),
+    resolverReservaAtascada: (codigo) => Api.llamar('resolverReservaAtascada', codigo),
+    registrarExcepcion: (d) => Api.llamar('registrarExcepcion', d),
+    listarExcepciones: () => Api.llamar('listarExcepciones'),
+  };
+</script>

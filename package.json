@@ -1,0 +1,38 @@
+{
+  "name": "generador-de-codigos",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Radicación de correspondencia TYC: código secuencial YY-NNN estampado en PDF (Google Apps Script)",
+  "scripts": {
+    "css:build": "node tailwind/build.mjs",
+    "css:watch": "node tailwind/build.mjs --watch",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "test": "jest",
+    "coverage": "jest --coverage",
+    "check": "npm run lint && npm test",
+    "push": "npm run css:build && clasp push -f",
+    "deploy:pruebas": "npm run check && npm run push && clasp deploy --description \"pruebas\""
+  },
+  "jest": {
+    "collectCoverageFrom": [
+      "src/backend/domain/**/*.js"
+    ],
+    "coverageThreshold": {
+      "global": {
+        "lines": 90,
+        "statements": 90
+      }
+    }
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.0",
+    "@types/google-apps-script": "^1.0.99",
+    "eslint": "^9.0.0",
+    "globals": "^16.0.0",
+    "jest": "^30.0.0",
+    "pdf-lib": "1.17.1",
+    "prettier": "^3.3.0",
+    "tailwindcss": "^4.1.0"
+  }
+}

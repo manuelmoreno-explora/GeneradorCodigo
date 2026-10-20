@@ -1,0 +1,30 @@
+<section id="pagina-panel" data-pagina="panel" hidden aria-labelledby="titulo-panel">
+  <h1 id="titulo-panel" class="text-2xl font-bold">Panel</h1>
+  <p class="mt-1 text-slate-600">Estado de la secuencia del año <span id="panel-anio"></span>.</p>
+
+  <p id="panel-carga" role="status" class="mt-4 text-sm text-slate-600">Cargando…</p>
+
+  <dl id="panel-cifras" hidden class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div class="card !p-4"><dt class="text-xs text-slate-600">Último consecutivo</dt><dd id="p-contador" class="text-3xl font-bold text-brand-700"></dd></div>
+    <div class="card !p-4"><dt class="text-xs text-slate-600">Completadas</dt><dd id="p-completadas" class="text-3xl font-bold"></dd></div>
+    <div class="card !p-4"><dt class="text-xs text-slate-600">Anuladas</dt><dd id="p-anuladas" class="text-3xl font-bold"></dd></div>
+    <div class="card !p-4"><dt class="text-xs text-slate-600">Recepción / Entrega</dt><dd id="p-tipos" class="text-3xl font-bold"></dd></div>
+  </dl>
+
+  <div class="card mt-4" id="panel-validar" hidden>
+    <h2 class="text-lg font-semibold">Validar secuencia</h2>
+    <p class="mt-1 text-sm text-slate-600">Revisa que no haya huecos ni duplicados y que el contador coincida con el registro.</p>
+    <p id="panel-ultima" class="mt-2 text-sm text-slate-600"></p>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <button type="button" id="btn-validar" class="btn-primary">Validar ahora</button>
+      <button type="button" id="btn-csv" class="btn-secondary">Exportar registro (CSV)</button>
+    </div>
+    <div id="validacion-resultado" role="status" aria-live="polite" class="mt-4" hidden></div>
+  </div>
+
+  <div class="card mt-4" id="panel-atascadas" hidden>
+    <h2 class="text-lg font-semibold">Reservas atascadas</h2>
+    <p class="mt-1 text-sm text-slate-600">Códigos que quedaron en proceso por más de 10 minutos. Al resolver, se completa el registro si el archivo está en Drive, o se devuelve/anula el número si no.</p>
+    <ul id="lista-atascadas" class="mt-3 divide-y divide-slate-100"></ul>
+  </div>
+</section>

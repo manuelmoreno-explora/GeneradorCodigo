@@ -1,0 +1,65 @@
+<section id="pagina-buscar" data-pagina="buscar" hidden aria-labelledby="titulo-buscar">
+  <h1 id="titulo-buscar" class="text-2xl font-bold">Buscar radicados</h1>
+  <p class="mt-1 text-slate-600">Consulta por código, tipo, estado o fecha.</p>
+
+  <form id="form-buscar" class="card mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6" novalidate>
+    <div class="lg:col-span-2">
+      <label for="f-codigo" class="mb-1 block text-sm font-medium">Código</label>
+      <input id="f-codigo" class="input" type="text" inputmode="text" maxlength="20" placeholder="26-001" autocomplete="off" />
+    </div>
+    <div>
+      <label for="f-tipo" class="mb-1 block text-sm font-medium">Tipo</label>
+      <select id="f-tipo" class="input">
+        <option value="">Todos</option>
+        <option value="RECEPCION">Recepción</option>
+        <option value="ENTREGA">Entrega</option>
+      </select>
+    </div>
+    <div>
+      <label for="f-estado" class="mb-1 block text-sm font-medium">Estado</label>
+      <select id="f-estado" class="input">
+        <option value="">Todos</option>
+        <option value="COMPLETADA">Completada</option>
+        <option value="ANULADA">Anulada</option>
+        <option value="RESERVADO">En proceso</option>
+      </select>
+    </div>
+    <div>
+      <label for="f-desde" class="mb-1 block text-sm font-medium">Desde</label>
+      <input id="f-desde" class="input" type="date" />
+    </div>
+    <div>
+      <label for="f-hasta" class="mb-1 block text-sm font-medium">Hasta</label>
+      <input id="f-hasta" class="input" type="date" />
+    </div>
+    <div class="flex gap-2 sm:col-span-2 lg:col-span-6">
+      <button type="submit" class="btn-primary">Buscar</button>
+      <button type="button" id="buscar-limpiar" class="btn-secondary">Limpiar</button>
+    </div>
+  </form>
+
+  <p id="buscar-estado" role="status" aria-live="polite" class="mt-4 text-sm text-slate-600"></p>
+
+  <div class="mt-2 overflow-x-auto rounded-card bg-white shadow-card" id="buscar-tabla-wrap" hidden>
+    <table class="w-full min-w-[40rem] text-left text-sm">
+      <caption class="sr-only">Resultados de la búsqueda</caption>
+      <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-600">
+        <tr>
+          <th scope="col" class="px-4 py-3">Código</th>
+          <th scope="col" class="px-4 py-3">Fecha</th>
+          <th scope="col" class="px-4 py-3">Tipo</th>
+          <th scope="col" class="px-4 py-3">Estado</th>
+          <th scope="col" class="px-4 py-3">Usuario</th>
+          <th scope="col" class="px-4 py-3">Archivo</th>
+        </tr>
+      </thead>
+      <tbody id="buscar-filas" class="divide-y divide-slate-100"></tbody>
+    </table>
+  </div>
+
+  <div id="buscar-paginacion" hidden class="mt-4 flex items-center justify-between gap-3">
+    <button type="button" id="buscar-anterior" class="btn-secondary">Anterior</button>
+    <span id="buscar-pagina" class="text-sm text-slate-600"></span>
+    <button type="button" id="buscar-siguiente" class="btn-secondary">Siguiente</button>
+  </div>
+</section>

@@ -1,0 +1,74 @@
+<script>
+  (function () {
+    const $ = Ui.$;
+    let pagina = 1;
+    let cargado = false;
+
+    function filtros() {
+      return {
+        codigo: $('f-codigo').value.trim(),
+        tipo: $('f-tipo').value,
+        estado: $('f-estado').value,
+        desde: $('f-desde').value,
+        hasta: $('f-hasta').value,
+        pagina,
+      };
+    }
+
+    async function buscar() {
+      const estado = $('buscar-estado');
+      estado.textContent = 'Buscando…';
+      try {
+        const r = await Api.buscarOperaciones(filtros());
+        if (!r.ok) throw new Error(r.mensaje);
+        pintar(r);
+      } catch (e) {
+        estado.textContent = e.message;
+        $('buscar-tabla-wrap').hidden = true;
+        $('buscar-paginacion').hidden = true;
+      }
+    }
+
+    function pintar(r) {
+      pagina = r.pagina;
+      const cuerpo = $('buscar-filas');
+      cuerpo.replaceChildren();
+      r.filas.forEach((o) => {
+        const tr = Ui.el('tr');
+        tr.appendChild(Ui.celda(o.codigo, 'font-semibold tabular-nums'));
+        tr.appendChild(Ui.celda(o.fecha, 'whitespace-nowrap tabular-nums'));
+        tr.appendChild(Ui.celda(Ui.etiquetaTipo(o.tipo)));
+        const e = Ui.celda('');
+        e.appendChild(Ui.insignia(o.estado));
+        if (o.motivo) e.title = o.motivo;
+        tr.appendChild(e);
+        tr.appendChild(Ui.celda(o.usuario, 'max-w-[14rem] truncate'));
+        const a = Ui.celda('');
+        if (o.url) {
+          const link = Ui.el('a', 'font-medium text-brand-700 underline', 'Abrir');
+          link.href = o.url;
+          link.target = '_blank';
+          link.rel = 'noopener';
+          a.appendChild(link);
+        } else {
+          a.textContent = '—';
+        }
+        tr.appendChild(a);
+        cuerpo.appendChild(tr);
+      });
+      const hay = r.total > 0;
+      $('buscar-estado').textContent = hay ? r.total + ' resultado(s)' : 'No se encontraron radicados con esos filtros.';
+      $('buscar-tabla-wrap').hidden = !hay;
+      $('buscar-paginacion').hidden = r.totalPaginas <= 1;
+      $('buscar-pagina').textContent = 'Página ' + r.pagina + ' de ' + r.totalPaginas;
+      $('buscar-anterior').disabled = r.pagina <= 1;
+      $('buscar-siguiente').disabled = r.pagina >= r.totalPaginas;
+    }
+
+    $('form-buscar').addEventListener('submit', (e) => { e.preventDefault(); pagina = 1; buscar(); });
+    $('buscar-limpiar').addEventListener('click', () => { $('form-buscar').reset(); pagina = 1; buscar(); });
+    $('buscar-anterior').addEventListener('click', () => { pagina -= 1; buscar(); });
+    $('buscar-siguiente').addEventListener('click', () => { pagina += 1; buscar(); });
+    document.addEventListener('pagina', (e) => { if (e.detail === 'buscar') { if (!cargado) cargado = true; buscar(); } });
+  })();
+</script>

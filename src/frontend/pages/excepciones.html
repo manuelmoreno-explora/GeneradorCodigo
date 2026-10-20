@@ -1,0 +1,57 @@
+<section id="pagina-excepciones" data-pagina="excepciones" hidden aria-labelledby="titulo-excepciones">
+  <h1 id="titulo-excepciones" class="text-2xl font-bold">Excepciones</h1>
+  <p class="mt-1 text-slate-600">Cada excepción queda registrada con responsable y autorización. Una anulación no libera el número.</p>
+
+  <form id="form-excepcion" class="card mt-4 space-y-4" novalidate>
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="x-codigo" class="mb-1 block text-sm font-medium">Código del radicado</label>
+        <input id="x-codigo" class="input" type="text" maxlength="20" placeholder="26-001" autocomplete="off" required />
+      </div>
+      <div>
+        <label for="x-tipo" class="mb-1 block text-sm font-medium">Tipo de excepción</label>
+        <select id="x-tipo" class="input" required>
+          <option value="REGISTRO">Registrar observación (no cambia el radicado)</option>
+          <option value="ANULACION">Anular el radicado</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label for="x-descripcion" class="mb-1 block text-sm font-medium">Descripción de la inconsistencia</label>
+      <textarea id="x-descripcion" class="input min-h-24" maxlength="500" required></textarea>
+    </div>
+    <div>
+      <label for="x-accion" class="mb-1 block text-sm font-medium">Acción correctiva</label>
+      <textarea id="x-accion" class="input min-h-20" maxlength="500" required></textarea>
+    </div>
+    <div>
+      <label for="x-autoriza" class="mb-1 block text-sm font-medium">Autorizado por (nombre y cargo)</label>
+      <input id="x-autoriza" class="input" type="text" maxlength="120" required />
+    </div>
+    <label id="x-confirma-wrap" hidden class="flex items-start gap-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">
+      <input id="x-confirma" type="checkbox" class="mt-0.5 size-5 accent-brand-600" />
+      <span>Entiendo que el código anulado queda registrado y <strong>no se reutiliza</strong>; el archivo de Drive no se borra.</span>
+    </label>
+    <p id="x-error" role="alert" class="text-sm font-medium text-danger" hidden></p>
+    <button type="submit" id="x-enviar" class="btn-primary">Registrar excepción</button>
+  </form>
+
+  <h2 class="mt-8 text-lg font-semibold">Excepciones registradas</h2>
+  <p id="x-lista-estado" role="status" class="mt-2 text-sm text-slate-600"></p>
+  <div class="mt-2 overflow-x-auto rounded-card bg-white shadow-card" id="x-tabla-wrap" hidden>
+    <table class="w-full min-w-[44rem] text-left text-sm">
+      <caption class="sr-only">Excepciones registradas</caption>
+      <thead class="border-b border-slate-200 bg-slate-50 text-xs uppercase text-slate-600">
+        <tr>
+          <th scope="col" class="px-4 py-3">Fecha</th>
+          <th scope="col" class="px-4 py-3">Código</th>
+          <th scope="col" class="px-4 py-3">Descripción</th>
+          <th scope="col" class="px-4 py-3">Acción</th>
+          <th scope="col" class="px-4 py-3">Responsable</th>
+          <th scope="col" class="px-4 py-3">Autorizó</th>
+        </tr>
+      </thead>
+      <tbody id="x-filas" class="divide-y divide-slate-100 align-top"></tbody>
+    </table>
+  </div>
+</section>

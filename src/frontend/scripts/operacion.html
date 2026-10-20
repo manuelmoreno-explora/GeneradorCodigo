@@ -1,0 +1,276 @@
+<script>
+  (function () {
+    const $ = (id) => document.getElementById(id);
+    const MAX_BYTES = window.APP_CONFIG.maxMB * 1024 * 1024;
+    const ETIQUETA_TIPO = { RECEPCION: 'Recepción (correspondencia recibida)', ENTREGA: 'Entrega (correspondencia enviada)' };
+    const INTERVALO_MS = 1500;
+    const LIMITE_MS = 120000;
+
+    const estado = { archivo: null, codigo: null };
+
+    // ---------- utilidades ----------
+    function mostrarVista(id) {
+      ['vista-formulario', 'vista-proceso', 'vista-exito', 'vista-error'].forEach((v) => {
+        $(v).hidden = v !== id;
+      });
+      const foco = { 'vista-exito': 'titulo-exito', 'vista-error': 'titulo-error' }[id];
+      if (foco) { $(foco).setAttribute('tabindex', '-1'); $(foco).focus(); }
+      window.scrollTo({ top: 0 });
+    }
+
+    let temporizadorToast;
+    function toast(mensaje) {
+      const t = $('toast');
+      t.textContent = mensaje;
+      t.hidden = false;
+      clearTimeout(temporizadorToast);
+      temporizadorToast = setTimeout(() => { t.hidden = true; }, 3000);
+    }
+
+    function formatoTamano(bytes) {
+      return bytes < 1024 * 1024 ? (bytes / 1024).toFixed(0) + ' KB' : (bytes / 1024 / 1024).toFixed(1) + ' MB';
+    }
+
+    function tipoElegido() {
+      const r = document.querySelector('input[name="tipo"]:checked');
+      return r ? r.value : null;
+    }
+
+    // ---------- validación y estado del formulario ----------
+    function errorDeArchivo(file) {
+      const esPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+      if (!esPdf) return 'El archivo debe ser un PDF.';
+      if (file.size === 0) return 'El archivo está vacío.';
+      if (file.size > MAX_BYTES) return 'El archivo pesa ' + formatoTamano(file.size) + ' y el máximo es ' + window.APP_CONFIG.maxMB + ' MB.';
+      return '';
+    }
+
+    function refrescar() {
+      const tipo = tipoElegido();
+      $('resumen-tipo').textContent = tipo ? ETIQUETA_TIPO[tipo] : '—';
+      $('resumen-archivo').textContent = estado.archivo ? estado.archivo.name : '—';
+      $('generar').disabled = !(tipo && estado.archivo);
+      $('archivo-elegido').hidden = !estado.archivo;
+      $('zona-carga').hidden = !!estado.archivo;
+      if (estado.archivo) {
+        $('archivo-nombre').textContent = estado.archivo.name;
+        $('archivo-tamano').textContent = formatoTamano(estado.archivo.size);
+      }
+    }
+
+    function elegirArchivo(file) {
+      const err = $('error-archivo');
+      if (!file) return;
+      const mensaje = errorDeArchivo(file);
+      err.hidden = !mensaje;
+      err.textContent = mensaje;
+      estado.archivo = mensaje ? null : file;
+      if ($('archivo').value && mensaje) $('archivo').value = '';
+      refrescar();
+    }
+
+    function leerBase64(file) {
+      return new Promise((resolver, rechazar) => {
+        const lector = new FileReader();
+        lector.onload = () => resolver(String(lector.result).split(',')[1] || '');
+        lector.onerror = () => rechazar(new Error('No se pudo leer el archivo.'));
+        lector.readAsDataURL(file);
+      });
+    }
+
+    // ---------- flujo principal ----------
+    const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+    async function esperarResultado(opId) {
+      const inicio = Date.now();
+      while (Date.now() - inicio < LIMITE_MS) {
+        await esperar(INTERVALO_MS);
+        const r = await Api.estadoOperacion(opId);
+        if (!r.ok) throw new Error(r.mensaje);
+        if (r.estado === 'OK') return r;
+        if (r.estado === 'ERROR') throw new Error(r.mensaje);
+      }
+      throw new Error('El proceso tarda más de lo normal. Avisa a Gestión Documental para revisar el registro antes de reintentar.');
+    }
+
+    async function generar(evento) {
+      evento.preventDefault();
+      const tipo = tipoElegido();
+      if (!tipo || !estado.archivo) return;
+      mostrarVista('vista-proceso');
+      $('proceso-detalle').textContent = 'Enviando el documento…';
+      try {
+        const base64 = await leerBase64(estado.archivo);
+        const inicio = await Api.iniciarOperacion({ tipo, nombre: estado.archivo.name, base64 });
+        if (!inicio.ok) throw new Error(inicio.mensaje);
+        $('proceso-detalle').textContent = 'Asignando el código, estampando el PDF y guardando en Drive…';
+        const resultado = await esperarResultado(inicio.opId);
+        estado.codigo = resultado.codigo;
+        mostrarExito(resultado.codigo, tipo, resultado.url);
+      } catch (e) {
+        mostrarError(e);
+      }
+    }
+
+    function mostrarExito(codigo, tipo, url) {
+      const etiqueta = tipo === 'ENTREGA' ? 'enviada' : 'recibida';
+      $('exito-codigo').textContent = codigo;
+      $('exito-nombre').textContent = 'Archivo en Drive: TYC-Correspondencia ' + etiqueta + ' ' + codigo + '.pdf';
+      $('btn-drive').href = url;
+      mostrarVista('vista-exito');
+    }
+
+    function mostrarError(e) {
+      $('error-mensaje').textContent = e.message;
+      mostrarVista('vista-error');
+    }
+
+    // ---------- envío por correo del ejemplar de entrega ----------
+    function alternarCorreo() {
+      const form = $('form-correo');
+      form.hidden = !form.hidden;
+      $('btn-correo').setAttribute('aria-expanded', String(!form.hidden));
+      if (!form.hidden) $('correo-destino').focus();
+    }
+
+    async function enviarCorreo(evento) {
+      evento.preventDefault();
+      const campo = $('correo-destino');
+      const estadoCorreo = $('correo-estado');
+      const destino = campo.value.trim();
+      estadoCorreo.className = 'mt-2 text-sm font-medium';
+      if (!destino || !campo.checkValidity()) {
+        estadoCorreo.classList.add('text-danger');
+        estadoCorreo.textContent = 'Escribe un correo válido.';
+        campo.focus();
+        return;
+      }
+      const boton = $('correo-enviar');
+      boton.disabled = true;
+      boton.textContent = 'Enviando…';
+      try {
+        const r = await Api.enviarEjemplarPorCorreo({ codigo: estado.codigo, destinatario: destino });
+        if (!r.ok) throw new Error(r.mensaje);
+        estadoCorreo.classList.add('text-ok');
+        estadoCorreo.textContent = 'Enviado a ' + r.destinatario + '.';
+        campo.value = '';
+      } catch (e) {
+        estadoCorreo.classList.add('text-danger');
+        estadoCorreo.textContent = e.message;
+      } finally {
+        boton.disabled = false;
+        boton.textContent = 'Enviar';
+      }
+    }
+
+    function reiniciar() {
+      estado.archivo = null;
+      estado.codigo = null;
+      $('form-correo').hidden = true;
+      $('form-correo').reset();
+      $('correo-estado').textContent = '';
+      $('btn-correo').setAttribute('aria-expanded', 'false');
+      $('archivo').value = '';
+      $('error-archivo').hidden = true;
+      document.querySelectorAll('input[name="tipo"]').forEach((r) => { r.checked = false; });
+      refrescar();
+      mostrarVista('vista-formulario');
+    }
+
+    // ---------- ejemplar de entrega ----------
+    function aBlob(base64) {
+      const bin = atob(base64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new Blob([bytes], { type: 'application/pdf' });
+    }
+
+    async function conEjemplar(boton, accion) {
+      const texto = boton.textContent;
+      boton.disabled = true;
+      boton.textContent = 'Preparando…';
+      try {
+        const r = await Api.obtenerEjemplar(estado.codigo);
+        if (!r.ok) throw new Error(r.mensaje);
+        accion(aBlob(r.base64), r.nombre);
+      } catch (e) {
+        toast(e.message);
+      } finally {
+        boton.disabled = false;
+        boton.textContent = texto;
+      }
+    }
+
+    function imprimir(blob) {
+      const url = URL.createObjectURL(blob);
+      const marco = document.createElement('iframe');
+      marco.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;';
+      marco.src = url;
+      marco.onload = () => {
+        try { marco.contentWindow.focus(); marco.contentWindow.print(); }
+        catch (e) { window.open(url, '_blank'); toast('Imprime desde la pestaña que se abrió.'); }
+      };
+      document.body.appendChild(marco);
+      setTimeout(() => { marco.remove(); URL.revokeObjectURL(url); }, 120000);
+    }
+
+    function descargar(blob, nombre) {
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = nombre;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10000);
+    }
+
+    function copiarCodigo() {
+      const codigo = estado.codigo;
+      const ok = () => toast('Código ' + codigo + ' copiado');
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(codigo).then(ok, fallback);
+      } else {
+        fallback();
+      }
+      function fallback() {
+        const t = document.createElement('textarea');
+        t.value = codigo;
+        document.body.appendChild(t);
+        t.select();
+        try { document.execCommand('copy'); ok(); } catch (e) { toast('Copia el código manualmente: ' + codigo); }
+        t.remove();
+      }
+    }
+
+    // ---------- eventos ----------
+    $('usuario').textContent = window.APP_CONFIG.usuario;
+    $('badge-pruebas').hidden = window.APP_CONFIG.ambiente !== 'PRUEBAS';
+    $('max-mb').textContent = window.APP_CONFIG.maxMB;
+
+    document.querySelectorAll('input[name="tipo"]').forEach((r) => r.addEventListener('change', refrescar));
+    $('archivo').addEventListener('change', (e) => elegirArchivo(e.target.files[0]));
+    $('quitar-archivo').addEventListener('click', () => { estado.archivo = null; $('archivo').value = ''; refrescar(); $('archivo').focus(); });
+
+    const zona = $('dropzone');
+    ['dragenter', 'dragover'].forEach((n) => zona.addEventListener(n, (e) => { e.preventDefault(); zona.dataset.arrastrando = 'true'; }));
+    ['dragleave', 'drop'].forEach((n) => zona.addEventListener(n, (e) => { e.preventDefault(); zona.dataset.arrastrando = 'false'; }));
+    zona.addEventListener('drop', (e) => {
+      const files = e.dataTransfer.files;
+      if (files.length > 1) { $('error-archivo').hidden = false; $('error-archivo').textContent = 'Sube un solo archivo a la vez.'; return; }
+      elegirArchivo(files[0]);
+    });
+
+    $('form').addEventListener('submit', generar);
+    $('btn-imprimir').addEventListener('click', (e) => conEjemplar(e.currentTarget, imprimir));
+    $('btn-descargar').addEventListener('click', (e) => conEjemplar(e.currentTarget, descargar));
+    $('btn-copiar').addEventListener('click', copiarCodigo);
+    $('btn-correo').hidden = !window.APP_CONFIG.correoHabilitado;
+    $('btn-correo').addEventListener('click', alternarCorreo);
+    $('form-correo').addEventListener('submit', enviarCorreo);
+    $('btn-nueva').addEventListener('click', reiniciar);
+    $('btn-reintentar').addEventListener('click', reiniciar);
+
+    refrescar();
+  })();
+</script>
