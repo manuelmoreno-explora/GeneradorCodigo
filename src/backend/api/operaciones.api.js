@@ -54,7 +54,7 @@ function enviarEjemplarPorCorreo(datos) {
   try {
     const usuario = AuthService.usuario();
     const d = datos || {};
-    const r = CorreoService.enviar(String(d.codigo || ''), String(d.destinatario || ''), usuario);
+    const r = CorreoService.enviar(String(d.codigo || ''), String(d.tipo || ''), String(d.destinatario || ''), usuario);
     return Object.assign({ ok: true }, r);
   } catch (e) {
     return errorParaCliente_(e);
@@ -62,11 +62,11 @@ function enviarEjemplarPorCorreo(datos) {
 }
 
 /** Devuelve el PDF archivado (mismo contenido del ejemplar de entrega) para imprimir o descargar. */
-function obtenerEjemplar(codigo) {
+function obtenerEjemplar(codigo, tipo) {
   try {
     const p = Codigo.parsear(codigo);
     if (!p) throw new ErrorNegocio('Código inválido.', 'CODIGO_INVALIDO');
-    const op = OperacionesRepo.listarPorAnio(p.anio).find((o) => o.codigo === codigo);
+    const op = OperacionesRepo.listarPorAnio(p.anio).find((o) => o.codigo === codigo && o.tipo === tipo);
     if (!op || op.estado !== Constantes.ESTADOS.COMPLETADA) {
       throw new ErrorNegocio('La operación aún no está completada.', 'NO_COMPLETADA');
     }

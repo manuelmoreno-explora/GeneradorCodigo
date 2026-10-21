@@ -33,22 +33,29 @@ var Codigo = {
   },
 
   /**
-   * Analiza una lista de consecutivos de un año.
-   * @param {number[]} consecutivos todos los asignados (incluye anulados)
-   * @returns {{faltantes:number[], duplicados:number[], maximo:number}}
+   * Analiza los consecutivos de UNA secuencia (año + tipo).
+   * @param {number[]} consecutivos todos los asignados por la app (incluye anulados)
+   * @param {number} [base=0] último consecutivo histórico (manual) anterior a la app: los números
+   *   1..base no están en el registro y no se consideran faltantes
+   * @returns {{faltantes:number[], duplicados:number[], bajoBase:number[], maximo:number}}
+   *   bajoBase: consecutivos del registro que caen dentro del rango histórico (conflicto)
    */
-  verificar(consecutivos) {
+  verificar(consecutivos, base) {
+    const desde = Number(base) || 0;
     const vistos = new Set();
     const duplicados = new Set();
-    let maximo = 0;
+    const bajoBase = new Set();
+    let maximo = desde;
     for (const n of consecutivos) {
       if (vistos.has(n)) duplicados.add(n);
       vistos.add(n);
+      if (n <= desde) bajoBase.add(n);
       if (n > maximo) maximo = n;
     }
     const faltantes = [];
-    for (let i = 1; i <= maximo; i++) if (!vistos.has(i)) faltantes.push(i);
-    return { faltantes, duplicados: [...duplicados].sort((a, b) => a - b), maximo };
+    for (let i = desde + 1; i <= maximo; i++) if (!vistos.has(i)) faltantes.push(i);
+    const orden = (s) => [...s].sort((a, b) => a - b);
+    return { faltantes, duplicados: orden(duplicados), bajoBase: orden(bajoBase), maximo };
   },
 };
 

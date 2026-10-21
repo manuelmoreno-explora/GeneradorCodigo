@@ -20,6 +20,7 @@
           const tr = Ui.el('tr');
           tr.appendChild(Ui.celda(x.fecha, 'whitespace-nowrap tabular-nums'));
           tr.appendChild(Ui.celda(x.codigo, 'font-semibold tabular-nums'));
+          tr.appendChild(Ui.celda(Ui.etiquetaTipo(x.tipo)));
           tr.appendChild(Ui.celda(x.descripcion, 'min-w-[12rem]'));
           tr.appendChild(Ui.celda(x.accion_correctiva, 'min-w-[10rem]'));
           tr.appendChild(Ui.celda(x.responsable, 'max-w-[12rem] truncate'));
@@ -43,6 +44,7 @@
       try {
         const r = await Api.registrarExcepcion({
           codigo: $('x-codigo').value.trim(),
+          correspondencia: $('x-corresp').value,
           tipo: $('x-tipo').value,
           descripcion: $('x-descripcion').value,
           accion: $('x-accion').value,

@@ -57,10 +57,11 @@ describe('Reglas de excepciones', () => {
     expect(Reglas.autorizado('', 'a@x.org')).toBe(false);
     expect(Reglas.autorizado('a@x.org', '')).toBe(false);
   });
-  const ok = { codigo: '26-001', tipo: 'ANULACION', descripcion: 'Documento equivocado', accion: 'Se vuelve a radicar', autorizadoPor: 'Jefe', confirmado: true };
+  const ok = { codigo: '26-001', correspondencia: 'RECEPCION', tipo: 'ANULACION', descripcion: 'Documento equivocado', accion: 'Se vuelve a radicar', autorizadoPor: 'Jefe', confirmado: true };
   test('acepta datos completos', () => expect(() => Reglas.validarExcepcion(ok)).not.toThrow());
   test.each([
     [{ codigo: 'x' }, 'CODIGO_INVALIDO'],
+    [{ correspondencia: '' }, 'SIN_CORRESPONDENCIA'],
     [{ tipo: 'OTRA' }, 'TIPO_EXCEPCION'],
     [{ descripcion: 'corto' }, 'SIN_DESCRIPCION'],
     [{ accion: '' }, 'SIN_ACCION'],
@@ -83,13 +84,13 @@ function depsExcepcion(f, autorizados = 'jefe@x.org') {
     ahora: f.ahora,
   };
 }
-const datos = (extra = {}) => ({ codigo: '26-001', tipo: 'ANULACION', descripcion: 'Documento equivocado', accion: 'Se vuelve a radicar', autorizadoPor: 'Dirección', confirmado: true, ...extra });
+const datos = (extra = {}) => ({ codigo: '26-001', correspondencia: 'RECEPCION', tipo: 'ANULACION', descripcion: 'Documento equivocado', accion: 'Se vuelve a radicar', autorizadoPor: 'Dirección', confirmado: true, ...extra });
 
 describe('ExcepcionService', () => {
   function radicado() {
     const f = crearDepsFalsas();
     const r = SecuenciaService.reservar('RECEPCION', 'a@x.org', f);
-    SecuenciaService.completar(r.codigo, {}, 'a@x.org', f);
+    SecuenciaService.completar(r, {}, 'a@x.org', f);
     return f;
   }
 
@@ -120,6 +121,19 @@ describe('ExcepcionService', () => {
     ExcepcionService.registrar(datos({ tipo: 'REGISTRO', confirmado: false }), 'jefe@x.org', d);
     expect(f.estado.ops[0].estado).toBe('COMPLETADA');
     expect(d.lista).toHaveLength(1);
+  });
+  test('el mismo código del OTRO tipo no cuenta: la excepción exige tipo de correspondencia', () => {
+    const f = radicado();
+    expect(() => ExcepcionService.registrar(datos({ correspondencia: 'ENTREGA' }), 'jefe@x.org', depsExcepcion(f))).toThrow(expect.objectContaining({ codigo: 'SIN_OPERACION' }));
+    expect(f.estado.ops[0].estado).toBe('COMPLETADA');
+  });
+  test('anular en un tipo no toca el mismo código del otro tipo', () => {
+    const f = radicado();
+    const e = SecuenciaService.reservar('ENTREGA', 'a', f);
+    SecuenciaService.completar(e, {}, 'a', f);
+    ExcepcionService.registrar(datos({ correspondencia: 'ENTREGA' }), 'jefe@x.org', depsExcepcion(f));
+    expect(f.estado.ops.find((o) => o.tipo === 'ENTREGA').estado).toBe('ANULADA');
+    expect(f.estado.ops.find((o) => o.tipo === 'RECEPCION').estado).toBe('COMPLETADA');
   });
   test('código inexistente', () => {
     const f = radicado();
@@ -153,39 +167,47 @@ describe('MantenimientoService', () => {
   });
   test('sin archivo y siendo la última: devuelve el número', () => {
     const { f, d } = conReservaAtascada();
-    expect(MantenimientoService.resolver('26-001', 'jefe@x.org', d).resultado).toBe('LIBERADA');
+    expect(MantenimientoService.resolver({ codigo: '26-001', tipo: 'RECEPCION' }, 'jefe@x.org', d).resultado).toBe('LIBERADA');
     expect(f.estado.ops).toHaveLength(0);
-    expect(f.estado.contadores[2026]).toBe(0);
+    expect(f.estado.contador(2026)).toBe(0);
   });
   test('con archivo en Drive: completa el registro', () => {
     const { f, d } = conReservaAtascada();
     d.drive.buscar = () => ({ id: 'f1', url: 'u' });
-    expect(MantenimientoService.resolver('26-001', 'jefe@x.org', d).resultado).toBe('COMPLETADA');
+    expect(MantenimientoService.resolver({ codigo: '26-001', tipo: 'RECEPCION' }, 'jefe@x.org', d).resultado).toBe('COMPLETADA');
     expect(f.estado.ops[0]).toMatchObject({ estado: 'COMPLETADA', archivo_id: 'f1' });
   });
   test('sin archivo pero con códigos posteriores: queda ANULADA', () => {
     const { f, d } = conReservaAtascada();
     SecuenciaService.reservar('RECEPCION', 'a', f);
-    expect(MantenimientoService.resolver('26-001', 'jefe@x.org', d).resultado).toBe('ANULADA');
+    expect(MantenimientoService.resolver({ codigo: '26-001', tipo: 'RECEPCION' }, 'jefe@x.org', d).resultado).toBe('ANULADA');
     expect(f.estado.ops[0].estado).toBe('ANULADA');
   });
   test('exige autorización y que sea realmente una reserva atascada', () => {
     const { d } = conReservaAtascada();
-    expect(() => MantenimientoService.resolver('26-001', 'otro@x.org', d)).toThrow(expect.objectContaining({ codigo: 'NO_AUTORIZADO' }));
-    expect(() => MantenimientoService.resolver('26-050', 'jefe@x.org', d)).toThrow(expect.objectContaining({ codigo: 'NO_ATASCADA' }));
+    expect(() => MantenimientoService.resolver({ codigo: '26-001', tipo: 'RECEPCION' }, 'otro@x.org', d)).toThrow(expect.objectContaining({ codigo: 'NO_AUTORIZADO' }));
+    expect(() => MantenimientoService.resolver({ codigo: '26-050', tipo: 'RECEPCION' }, 'jefe@x.org', d)).toThrow(expect.objectContaining({ codigo: 'NO_ATASCADA' }));
   });
 });
 
 describe('PanelService', () => {
-  test('resumen cuenta por estado y tipo', () => {
+  test('resumen cuenta por estado, separado por tipo', () => {
     const f = crearDepsFalsas();
-    SecuenciaService.completar(SecuenciaService.reservar('RECEPCION', 'a', f).codigo, {}, 'a', f);
-    SecuenciaService.completar(SecuenciaService.reservar('ENTREGA', 'a', f).codigo, {}, 'a', f);
-    SecuenciaService.anular(SecuenciaService.reservar('ENTREGA', 'a', f).codigo, 'x', 'a', f);
-    expect(PanelService.resumen(2026, f)).toMatchObject({ contador: 3, total: 3, completadas: 2, anuladas: 1, recepcion: 1, entrega: 2 });
+    SecuenciaService.establecerBase('ENTREGA', 567, 'a', f);
+    SecuenciaService.completar(SecuenciaService.reservar('RECEPCION', 'a', f), {}, 'a', f);
+    SecuenciaService.completar(SecuenciaService.reservar('ENTREGA', 'a', f), {}, 'a', f);
+    SecuenciaService.anular(SecuenciaService.reservar('ENTREGA', 'a', f), 'x', 'a', f);
+    const r = PanelService.resumen(2026, f);
+    expect(r.porTipo.RECEPCION).toMatchObject({ contador: 1, total: 1, completadas: 1, anuladas: 0, base: 0 });
+    expect(r.porTipo.ENTREGA).toMatchObject({ contador: 569, total: 2, completadas: 1, anuladas: 1, base: 567 });
   });
-  test('texto de validación', () => {
-    expect(PanelService.resumenValidacion({ ok: true, total: 5 })).toMatch(/correcta/);
-    expect(PanelService.resumenValidacion({ ok: false, faltantes: [2], duplicados: [], contador: 3, maximo: 3 })).toMatch(/faltan 1/);
+  test('texto de validación por tipo', () => {
+    const f = crearDepsFalsas();
+    SecuenciaService.reservar('RECEPCION', 'a', f);
+    expect(PanelService.resumenValidacion(SecuenciaService.verificar(2026, f))).toMatch(/^Secuencias correctas. Recibida: correcta/);
+    f.estado.ops.push({ anio: 2026, consecutivo: 5, codigo: '26-005', tipo: 'ENTREGA', estado: 'COMPLETADA' });
+    f.estado.contadores['2026|ENTREGA'] = 5;
+    const texto = PanelService.resumenValidacion(SecuenciaService.verificar(2026, f));
+    expect(texto).toMatch(/Enviada: HALLAZGOS — faltan 4/);
   });
 });

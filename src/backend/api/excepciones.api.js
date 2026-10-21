@@ -7,6 +7,7 @@ function registrarExcepcion(datos) {
     const r = ExcepcionService.registrar(
       {
         codigo: String(d.codigo || '').trim(),
+        correspondencia: String(d.correspondencia || ''),
         tipo: String(d.tipo || ''),
         descripcion: String(d.descripcion || ''),
         accion: String(d.accion || ''),

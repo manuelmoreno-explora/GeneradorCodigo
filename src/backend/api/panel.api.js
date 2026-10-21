@@ -46,10 +46,10 @@ function exportarRegistroCsv() {
   }
 }
 
-function resolverReservaAtascada(codigo) {
+function resolverReservaAtascada(codigo, tipo) {
   try {
     const usuario = AuthService.usuario();
-    return Object.assign({ ok: true }, MantenimientoService.resolver(String(codigo || ''), usuario));
+    return Object.assign({ ok: true }, MantenimientoService.resolver({ codigo: String(codigo || ''), tipo: String(tipo || '') }, usuario));
   } catch (e) {
     return errorParaCliente_(e);
   }

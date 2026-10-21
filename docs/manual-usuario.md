@@ -25,6 +25,7 @@ Si no ves el menú **Excepciones**, no tienes autorización; pídela a Gestión 
 - **Anular el radicado:** para un documento ya archivado que debe anularse. Indica código, descripción, acción correctiva y quién autoriza, y marca la casilla de confirmación. El código **no se reutiliza** y el archivo de Drive **no se borra**.
 
 ## Reglas que no cambian
+- **Recibida y enviada llevan numeración independiente.** Puede existir una recibida 26-135 y una enviada 26-135; se distinguen por el nombre del archivo y la carpeta.
 - Cada documento tiene su propio código; el código aparece en el PDF y en el nombre del archivo.
 - No se renombran ni se mueven manualmente los archivos de las carpetas TYC. No se edita el Sheet a mano.
 - Un código solo existe si el archivo quedó en Drive.

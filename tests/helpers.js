@@ -5,27 +5,38 @@ const { ErrorNegocio, ErrorSistema } = require('../src/backend/domain/errores');
 const { Reglas } = require('../src/backend/domain/reglas');
 Object.assign(global, { Codigo, Constantes, ErrorNegocio, ErrorSistema, Reglas });
 
-/** Repositorios en memoria + lock falso para probar SecuenciaService sin Google. */
+/** Repositorios en memoria + lock falso para probar SecuenciaService sin Google (secuencia por año y tipo). */
 function crearDepsFalsas(anio = 2026) {
-  const estado = { contadores: {}, ops: [], auditoria: [], anio, bloqueos: 0, liberaciones: 0 };
+  const estado = {
+    contadores: {}, bases: {}, ops: [], auditoria: [], anio, bloqueos: 0, liberaciones: 0,
+    /** último consecutivo del año y tipo (por defecto RECEPCION) */
+    contador: (a, tipo = 'RECEPCION') => estado.contadores[a + '|' + tipo] || 0,
+  };
+  const llave = (a, t) => a + '|' + t;
+  const igual = (o, ref) => o.codigo === ref.codigo && o.tipo === ref.tipo;
   return {
     estado,
     secuencias: {
-      obtener: (a) => (estado.contadores[a] = estado.contadores[a] || 0),
-      guardar: (a, n) => { estado.contadores[a] = n; },
+      obtener: (a, t) => {
+        if (!(llave(a, t) in estado.contadores)) estado.contadores[llave(a, t)] = 0;
+        return { ultimo: estado.contadores[llave(a, t)], base: estado.bases[llave(a, t)] || 0 };
+      },
+      guardar: (a, t, n) => { estado.contadores[llave(a, t)] = n; },
+      establecerBase: (a, t, b) => { estado.contadores[llave(a, t)] = b; estado.bases[llave(a, t)] = b; },
     },
     operaciones: {
       agregar: (o) => estado.ops.push({ ...o }),
       listarPorAnio: (a) => estado.ops.filter((o) => o.anio === a),
-      maximo: (a) => estado.ops.filter((o) => o.anio === a).reduce((m, o) => Math.max(m, o.consecutivo), 0),
-      eliminar: (codigo) => {
-        const i = estado.ops.findIndex((x) => x.codigo === codigo);
+      maximo: (a, t) =>
+        estado.ops.filter((o) => o.anio === a && o.tipo === t).reduce((m, o) => Math.max(m, o.consecutivo), 0),
+      eliminar: (ref) => {
+        const i = estado.ops.findIndex((x) => igual(x, ref));
         if (i < 0) return false;
         estado.ops.splice(i, 1);
         return true;
       },
-      actualizar: (codigo, campos) => {
-        const o = estado.ops.find((x) => x.codigo === codigo);
+      actualizar: (ref, campos) => {
+        const o = estado.ops.find((x) => igual(x, ref));
         if (!o) return false;
         Object.assign(o, campos);
         return true;

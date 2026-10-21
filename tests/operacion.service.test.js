@@ -73,7 +73,7 @@ describe('OperacionService.procesar', () => {
     const r = await OperacionService.procesar('op1', 'RECEPCION', roto(), 'a@x.org', d);
     expect(r.ok).toBe(false);
     expect(f.estado.ops).toHaveLength(0);
-    expect(f.estado.contadores[2026] || 0).toBe(0);
+    expect(f.estado.contador(2026)).toBe(0);
     expect(d.archivos).toHaveLength(0);
     expect(d.estadosGuardados.op1.estado).toBe('ERROR');
     expect(f.estado.auditoria.find((a) => a[1] === 'INTENTO_FALLIDO')[2]).toBe('');
@@ -84,7 +84,7 @@ describe('OperacionService.procesar', () => {
     await OperacionService.procesar('a', 'RECEPCION', roto(), 'a@x.org', depsOperacion(f));
     const r = await OperacionService.procesar('b', 'RECEPCION', await pdf(), 'a@x.org', depsOperacion(f));
     expect(r.codigo).toBe('26-001');
-    expect(SecuenciaService.verificar(2026, f)).toMatchObject({ ok: true, total: 1, faltantes: [] });
+    expect(SecuenciaService.verificar(2026, f).porTipo.RECEPCION).toMatchObject({ ok: true, total: 1, faltantes: [] });
   });
 
   test('falla Drive: se devuelve el número (liberado) y no queda fila ni salto', async () => {
@@ -101,7 +101,7 @@ describe('OperacionService.procesar', () => {
     expect(r.ok).toBe(false);
     expect(r.mensaje).toMatch(/No se asignó ningún código/);
     expect(f.estado.ops).toHaveLength(0);
-    expect(f.estado.contadores[2026]).toBe(0);
+    expect(f.estado.contador(2026)).toBe(0);
     expect(acciones(f)).toEqual(expect.arrayContaining(['RESERVAR', 'LIBERAR', 'INTENTO_FALLIDO']));
     expect(f.estado.liberaciones).toBe(1);
     const ok = await OperacionService.procesar('op2', 'RECEPCION', await pdf(), 'a@x.org', depsOperacion(f));
@@ -121,7 +121,7 @@ describe('OperacionService.procesar', () => {
     expect(r.ok).toBe(false);
     expect(d.archivos[0].papelera).toBe(true);
     expect(f.estado.ops).toHaveLength(0);
-    expect(f.estado.contadores[2026]).toBe(0);
+    expect(f.estado.contador(2026)).toBe(0);
   });
 
   test('si no se puede liberar, queda ANULADA con motivo', async () => {
@@ -136,6 +136,15 @@ describe('OperacionService.procesar', () => {
     };
     await OperacionService.procesar('op1', 'RECEPCION', await pdf(), 'a@x.org', d);
     expect(f.estado.ops[0]).toMatchObject({ estado: 'ANULADA', motivo_anulacion: 'x' });
+  });
+
+  test('recepción y entrega no se mezclan: cada una continúa su propia secuencia', async () => {
+    const f = crearDepsFalsas();
+    const a = await OperacionService.procesar('a', 'ENTREGA', await pdf(), 'x@x.org', depsOperacion(f));
+    const b = await OperacionService.procesar('b', 'RECEPCION', await pdf(), 'x@x.org', depsOperacion(f));
+    const c = await OperacionService.procesar('c', 'ENTREGA', await pdf(), 'x@x.org', depsOperacion(f));
+    expect([a.codigo, b.codigo, c.codigo]).toEqual(['26-001', '26-001', '26-002']);
+    expect(f.estado.ops.map((x) => x.tipo + x.codigo)).toEqual(['ENTREGA26-001', 'RECEPCION26-001', 'ENTREGA26-002']);
   });
 
   test('operaciones seguidas generan 001, 002, 003 y la secuencia queda sana', async () => {

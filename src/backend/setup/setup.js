@@ -33,6 +33,7 @@ function setup() {
       hoja.setFrozenRows(1);
     }
   });
+  migrarEsquema_(ss);
   const sobrante = ss.getSheetByName('Hoja 1') || ss.getSheetByName('Sheet1');
   if (sobrante && ss.getSheets().length > 1) ss.deleteSheet(sobrante);
 
@@ -43,18 +44,59 @@ function setup() {
     const fila = f.slice();
     if (fila[0] === 'EXCEPCIONES_AUTORIZADOS' && !fila[1]) fila[1] = Session.getActiveUser().getEmail();
     if (fila[0] === 'DRIVE_RAIZ_ID') fila[1] = raizId;
+    // Propiedad AMBIENTE_INICIAL=PRODUCCION: la hoja nace en producción y setup() nunca crea carpetas.
+    if (fila[0] === 'AMBIENTE' && props.getProperty('AMBIENTE_INICIAL')) fila[1] = props.getProperty('AMBIENTE_INICIAL');
     config.appendRow(fila);
   });
 
   const secuencias = ss.getSheetByName(Constantes.HOJAS.SECUENCIAS);
   if (secuencias.getLastRow() === 1) {
-    secuencias.appendRow([new Date().getFullYear(), 0]); // semilla 000: nunca se asigna
+    // una secuencia por tipo (recepción y entrega son independientes); semilla 000: nunca se asigna
+    const anio = Number(Utilities.formatDate(new Date(), 'America/Bogota', 'yyyy'));
+    Reglas.TIPOS.forEach((t) => secuencias.appendRow([anio, t, 0, 0]));
   }
 
   const carpetas = resolverCarpetas_(raiz, config);
   Logger.log('Spreadsheet: ' + ss.getUrl());
   Logger.log('Carpetas: ' + JSON.stringify(carpetas));
+  Logger.log('Siguiente paso: ajusta CONSECUTIVO_INICIAL_RECEPCION y CONSECUTIVO_INICIAL_ENTREGA en Config y ejecuta inicializarConsecutivos().');
   return { spreadsheetUrl: ss.getUrl(), carpetas };
+}
+
+/**
+ * Actualiza el esquema de Secuencias (por tipo) y Excepciones (con tipo) si la hoja viene de una
+ * versión anterior. Solo si aún no hay datos que perder; si los hay, falla y pide migración manual.
+ */
+function migrarEsquema_(ss) {
+  const hayOperaciones = ss.getSheetByName(Constantes.HOJAS.OPERACIONES).getLastRow() > 1;
+  [Constantes.HOJAS.SECUENCIAS, Constantes.HOJAS.EXCEPCIONES].forEach((nombre) => {
+    const hoja = ss.getSheetByName(nombre);
+    const enc = Constantes.ENCABEZADOS[nombre];
+    const actual = hoja.getRange(1, 1, 1, enc.length).getValues()[0];
+    if (actual.join('|') === enc.join('|')) return;
+    if (hayOperaciones || (nombre === Constantes.HOJAS.EXCEPCIONES && hoja.getLastRow() > 1)) {
+      throw new Error('La hoja ' + nombre + ' tiene un esquema anterior y ya hay datos: migrar manualmente.');
+    }
+    hoja.clear();
+    hoja.getRange(1, 1, 1, enc.length).setValues([enc]).setFontWeight('bold');
+    hoja.setFrozenRows(1);
+  });
+}
+
+/**
+ * Fija el consecutivo histórico (manual) de cada tipo para el año actual, tomándolo de Config:
+ * CONSECUTIVO_INICIAL_RECEPCION y CONSECUTIVO_INICIAL_ENTREGA = último número ya usado a mano.
+ * El próximo código será ese número + 1. Solo funciona si el tipo aún no tiene radicados en el registro.
+ */
+function inicializarConsecutivos() {
+  CacheService.getScriptCache().remove('config'); // leer los valores recién editados
+  const usuario = Session.getActiveUser().getEmail();
+  Reglas.TIPOS.forEach((t) => {
+    const base = Number(ConfigRepo.obtener('CONSECUTIVO_INICIAL_' + t, '0'));
+    SecuenciaService.establecerBase(t, base, usuario);
+    Logger.log(t + ': último manual = ' + base + ' -> el próximo código será ' + Codigo.formatear(
+      Number(Utilities.formatDate(new Date(), 'America/Bogota', 'yyyy')), base + 1));
+  });
 }
 
 /** Busca las subcarpetas TYC por nombre. Solo en ambiente PRUEBAS las crea si faltan. */
@@ -116,7 +158,7 @@ function pruebaPdfLib() {
 function pruebaSecuencia() {
   const usuario = Session.getActiveUser().getEmail();
   const r = SecuenciaService.reservar(Constantes.TIPOS.RECEPCION, usuario);
-  SecuenciaService.anular(r.codigo, 'PRUEBA', usuario);
+  SecuenciaService.anular(r, 'PRUEBA', usuario);
   Logger.log('Reservado y anulado: ' + r.codigo);
   Logger.log(JSON.stringify(SecuenciaService.verificar(r.anio)));
 }
@@ -132,7 +174,8 @@ function limpiarDatosDePrueba() {
   });
   const s = ConfigRepo.hoja(Constantes.HOJAS.SECUENCIAS);
   if (s.getLastRow() > 1) s.deleteRows(2, s.getLastRow() - 1);
-  s.appendRow([Number(Utilities.formatDate(new Date(), 'America/Bogota', 'yyyy')), 0]);
+  const anio = Number(Utilities.formatDate(new Date(), 'America/Bogota', 'yyyy'));
+  Reglas.TIPOS.forEach((t) => s.appendRow([anio, t, 0, 0]));
   Logger.log('Datos de prueba reiniciados.');
 }
 

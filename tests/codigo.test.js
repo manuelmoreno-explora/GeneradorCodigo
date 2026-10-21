@@ -42,17 +42,24 @@ describe('Codigo.nombreArchivo', () => {
 
 describe('Codigo.verificar', () => {
   test('secuencia limpia', () => {
-    expect(Codigo.verificar([1, 2, 3])).toEqual({ faltantes: [], duplicados: [], maximo: 3 });
+    expect(Codigo.verificar([1, 2, 3])).toEqual({ faltantes: [], duplicados: [], bajoBase: [], maximo: 3 });
   });
   test('detecta huecos y duplicados', () => {
-    expect(Codigo.verificar([1, 2, 2, 5])).toEqual({ faltantes: [3, 4], duplicados: [2], maximo: 5 });
+    expect(Codigo.verificar([1, 2, 2, 5])).toEqual({ faltantes: [3, 4], duplicados: [2], bajoBase: [], maximo: 5 });
   });
   test('ordena numéricamente tras 999', () => {
     const r = Codigo.verificar([998, 999, 1000, 1002]);
     expect(r.maximo).toBe(1002);
     expect(r.faltantes).toContain(1001);
   });
+  test('con base histórica: no marca 1..base como faltantes', () => {
+    expect(Codigo.verificar([568, 569, 571], 567)).toEqual({ faltantes: [570], duplicados: [], bajoBase: [], maximo: 571 });
+    expect(Codigo.verificar([], 134)).toEqual({ faltantes: [], duplicados: [], bajoBase: [], maximo: 134 });
+  });
+  test('detecta consecutivos dentro del rango histórico', () => {
+    expect(Codigo.verificar([100, 135], 134).bajoBase).toEqual([100]);
+  });
   test('vacío', () => {
-    expect(Codigo.verificar([])).toEqual({ faltantes: [], duplicados: [], maximo: 0 });
+    expect(Codigo.verificar([])).toEqual({ faltantes: [], duplicados: [], bajoBase: [], maximo: 0 });
   });
 });

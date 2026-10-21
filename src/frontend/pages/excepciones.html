@@ -3,7 +3,15 @@
   <p class="mt-1 text-slate-600">Cada excepción queda registrada con responsable y autorización. Una anulación no libera el número.</p>
 
   <form id="form-excepcion" class="card mt-4 space-y-4" novalidate>
-    <div class="grid gap-4 sm:grid-cols-2">
+    <div class="grid gap-4 sm:grid-cols-3">
+      <div>
+        <label for="x-corresp" class="mb-1 block text-sm font-medium">Correspondencia</label>
+        <select id="x-corresp" class="input" required>
+          <option value="">Elige…</option>
+          <option value="RECEPCION">Recibida</option>
+          <option value="ENTREGA">Enviada</option>
+        </select>
+      </div>
       <div>
         <label for="x-codigo" class="mb-1 block text-sm font-medium">Código del radicado</label>
         <input id="x-codigo" class="input" type="text" maxlength="20" placeholder="26-001" autocomplete="off" required />
@@ -45,6 +53,7 @@
         <tr>
           <th scope="col" class="px-4 py-3">Fecha</th>
           <th scope="col" class="px-4 py-3">Código</th>
+          <th scope="col" class="px-4 py-3">Tipo</th>
           <th scope="col" class="px-4 py-3">Descripción</th>
           <th scope="col" class="px-4 py-3">Acción</th>
           <th scope="col" class="px-4 py-3">Responsable</th>

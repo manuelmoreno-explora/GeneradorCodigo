@@ -6,7 +6,7 @@
     const INTERVALO_MS = 1500;
     const LIMITE_MS = 120000;
 
-    const estado = { archivo: null, codigo: null };
+    const estado = { archivo: null, codigo: null, tipo: null };
 
     // ---------- utilidades ----------
     function mostrarVista(id) {
@@ -106,6 +106,7 @@
         $('proceso-detalle').textContent = 'Asignando el código, estampando el PDF y guardando en Drive…';
         const resultado = await esperarResultado(inicio.opId);
         estado.codigo = resultado.codigo;
+        estado.tipo = tipo;
         mostrarExito(resultado.codigo, tipo, resultado.url);
       } catch (e) {
         mostrarError(e);
@@ -149,7 +150,7 @@
       boton.disabled = true;
       boton.textContent = 'Enviando…';
       try {
-        const r = await Api.enviarEjemplarPorCorreo({ codigo: estado.codigo, destinatario: destino });
+        const r = await Api.enviarEjemplarPorCorreo({ codigo: estado.codigo, tipo: estado.tipo, destinatario: destino });
         if (!r.ok) throw new Error(r.mensaje);
         estadoCorreo.classList.add('text-ok');
         estadoCorreo.textContent = 'Enviado a ' + r.destinatario + '.';
@@ -166,6 +167,7 @@
     function reiniciar() {
       estado.archivo = null;
       estado.codigo = null;
+      estado.tipo = null;
       $('form-correo').hidden = true;
       $('form-correo').reset();
       $('correo-estado').textContent = '';
@@ -190,7 +192,7 @@
       boton.disabled = true;
       boton.textContent = 'Preparando…';
       try {
-        const r = await Api.obtenerEjemplar(estado.codigo);
+        const r = await Api.obtenerEjemplar(estado.codigo, estado.tipo);
         if (!r.ok) throw new Error(r.mensaje);
         accion(aBlob(r.base64), r.nombre);
       } catch (e) {

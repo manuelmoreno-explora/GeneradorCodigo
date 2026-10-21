@@ -60,6 +60,7 @@ var Reglas = {
   validarExcepcion(d) {
     const falta = (txt, min) => !txt || String(txt).trim().length < min;
     if (!Codigo.parsear(d.codigo)) throw new ErrorNegocio('Escribe un código válido, por ejemplo 26-001.', 'CODIGO_INVALIDO');
+    if (!Reglas.TIPOS.includes(d.correspondencia)) throw new ErrorNegocio('Indica si la correspondencia es recibida o enviada.', 'SIN_CORRESPONDENCIA');
     if (!['REGISTRO', 'ANULACION'].includes(d.tipo)) throw new ErrorNegocio('Elige el tipo de excepción.', 'TIPO_EXCEPCION');
     if (falta(d.descripcion, 10)) throw new ErrorNegocio('Describe la inconsistencia (mínimo 10 caracteres).', 'SIN_DESCRIPCION');
     if (falta(d.accion, 5)) throw new ErrorNegocio('Describe la acción correctiva.', 'SIN_ACCION');

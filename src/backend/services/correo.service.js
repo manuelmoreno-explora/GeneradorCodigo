@@ -18,7 +18,7 @@ var CorreoService = {
   },
 
   /** @returns {{destinatario:string}} */
-  enviar(codigo, destinatario, usuario, deps) {
+  enviar(codigo, tipo, destinatario, usuario, deps) {
     const d = deps || CorreoService.deps();
     if (d.cfg('CORREO_HABILITADO', 'NO') !== 'SI') {
       throw new ErrorNegocio('El envío por correo no está habilitado.', 'CORREO_DESHABILITADO');
@@ -26,7 +26,7 @@ var CorreoService = {
     const para = Reglas.validarCorreo(destinatario, d.cfg('CORREO_DOMINIOS_PERMITIDOS', ''));
     const p = Codigo.parsear(codigo);
     if (!p) throw new ErrorNegocio('Código inválido.', 'CODIGO_INVALIDO');
-    const op = d.operaciones.listarPorAnio(p.anio).find((o) => o.codigo === codigo);
+    const op = d.operaciones.listarPorAnio(p.anio).find((o) => o.codigo === codigo && o.tipo === tipo);
     if (!op || op.estado !== Constantes.ESTADOS.COMPLETADA) {
       throw new ErrorNegocio('Solo se puede enviar un radicado completado.', 'NO_COMPLETADA');
     }
@@ -46,7 +46,7 @@ var CorreoService = {
       replyTo: usuario,
       attachments: [d.adjunto(d.drive.leer(op.archivo_id), nombre)],
     });
-    d.auditoria.registrar(usuario, 'ENVIO_CORREO', codigo, para);
+    d.auditoria.registrar(usuario, 'ENVIO_CORREO', codigo, tipo + ' | ' + para);
     return { destinatario: para };
   },
 };

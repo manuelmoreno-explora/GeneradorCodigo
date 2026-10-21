@@ -1,6 +1,8 @@
 <script>
   (function () {
     const $ = Ui.$;
+    const TIPOS = ['RECEPCION', 'ENTREGA'];
+    const NOMBRE = { RECEPCION: 'Recibida', ENTREGA: 'Enviada' };
 
     async function cargar() {
       $('panel-carga').hidden = false;
@@ -10,10 +12,13 @@
         if (!r.ok) throw new Error(r.mensaje);
         const s = r.resumen;
         $('panel-anio').textContent = s.anio;
-        $('p-contador').textContent = s.contador;
-        $('p-completadas').textContent = s.completadas;
-        $('p-anuladas').textContent = s.anuladas;
-        $('p-tipos').textContent = s.recepcion + ' / ' + s.entrega;
+        TIPOS.forEach((t) => {
+          const x = s.porTipo[t];
+          $('p-contador-' + t).textContent = x.contador;
+          const partes = [x.completadas + ' completadas', x.anuladas + ' anuladas'];
+          if (x.base > 0) partes.push('histórico manual hasta ' + x.base);
+          $('p-detalle-' + t).textContent = partes.join(' · ');
+        });
         $('panel-cifras').hidden = false;
         $('panel-validar').hidden = false;
         $('panel-carga').hidden = true;
@@ -37,7 +42,7 @@
         b.type = 'button';
         b.addEventListener('click', async () => {
           b.disabled = true;
-          const res = await Api.resolverReservaAtascada(a.codigo).catch((e) => ({ ok: false, mensaje: e.message }));
+          const res = await Api.resolverReservaAtascada(a.codigo, a.tipo).catch((e) => ({ ok: false, mensaje: e.message }));
           Ui.toast(res.mensaje);
           cargar();
         });
@@ -50,17 +55,22 @@
       const caja = $('validacion-resultado');
       caja.hidden = false;
       caja.replaceChildren();
-      const ok = v.ok;
-      caja.className = 'mt-4 rounded-lg p-4 ' + (ok ? 'bg-green-50 text-green-900' : 'bg-red-50 text-red-900');
-      caja.appendChild(Ui.el('p', 'font-semibold', (ok ? '✔ ' : '✖ ') + texto));
-      const detalle = (titulo, items) => {
-        if (!items.length) return;
-        caja.appendChild(Ui.el('p', 'mt-2 text-sm', titulo + ': ' + items.join(', ')));
-      };
-      detalle('Consecutivos faltantes', v.faltantes);
-      detalle('Consecutivos duplicados', v.duplicados);
-      detalle('Reservas sin completar', v.reservadasSinCompletar);
-      detalle('Anuladas (cuentan en la secuencia)', v.anuladas);
+      caja.className = 'mt-4 rounded-lg p-4 ' + (v.ok ? 'bg-green-50 text-green-900' : 'bg-red-50 text-red-900');
+      caja.appendChild(Ui.el('p', 'font-semibold', (v.ok ? '✔ ' : '✖ ') + (v.ok ? 'Las dos secuencias están correctas.' : 'Hay hallazgos que revisar.')));
+      TIPOS.forEach((t) => {
+        const x = v.porTipo[t];
+        const bloque = Ui.el('div', 'mt-3 text-sm');
+        bloque.appendChild(Ui.el('p', 'font-semibold', (x.ok ? '✔ ' : '✖ ') + NOMBRE[t] + ': último ' + x.contador + ', ' + x.total + ' radicado(s) por la app' + (x.base > 0 ? ', histórico manual hasta ' + x.base : '')));
+        const detalle = (titulo, items) => {
+          if (items.length) bloque.appendChild(Ui.el('p', 'mt-1', titulo + ': ' + items.join(', ')));
+        };
+        detalle('Consecutivos faltantes', x.faltantes);
+        detalle('Consecutivos duplicados', x.duplicados);
+        detalle('Dentro del rango histórico (conflicto)', x.bajoBase);
+        detalle('Reservas sin completar', x.reservadasSinCompletar);
+        detalle('Anuladas (cuentan en la secuencia)', x.anuladas);
+        caja.appendChild(bloque);
+      });
     }
 
     $('btn-validar').addEventListener('click', async (e) => {

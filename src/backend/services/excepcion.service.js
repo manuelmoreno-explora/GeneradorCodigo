@@ -26,7 +26,7 @@ var ExcepcionService = {
     }
   },
 
-  /** @param {{codigo:string,tipo:string,descripcion:string,accion:string,autorizadoPor:string,confirmado?:boolean}} datos */
+  /** @param {{codigo:string,correspondencia:string,tipo:string,descripcion:string,accion:string,autorizadoPor:string,confirmado?:boolean}} datos */
   registrar(datos, usuario, deps) {
     const d = deps || ExcepcionService.deps();
     ExcepcionService.exigirAutorizado_(usuario, d);
@@ -36,25 +36,27 @@ var ExcepcionService = {
     lock.waitLock(30000);
     try {
       const p = Codigo.parsear(datos.codigo);
-      const op = d.operaciones.listarPorAnio(p.anio).find((o) => o.codigo === datos.codigo);
-      if (!op) throw new ErrorNegocio('No existe el código ' + datos.codigo + ' en el registro.', 'SIN_OPERACION');
+      const op = d.operaciones
+        .listarPorAnio(p.anio)
+        .find((o) => o.codigo === datos.codigo && o.tipo === datos.correspondencia);
+      if (!op) throw new ErrorNegocio('No existe el código ' + datos.codigo + ' (' + datos.correspondencia + ') en el registro.', 'SIN_OPERACION');
 
       if (datos.tipo === 'ANULACION') {
         if (op.estado !== Constantes.ESTADOS.COMPLETADA) {
           throw new ErrorNegocio('Solo se puede anular un radicado completado. Estado actual: ' + op.estado + '.', 'ESTADO_INVALIDO');
         }
-        d.operaciones.actualizar(datos.codigo, {
+        d.operaciones.actualizar({ codigo: datos.codigo, tipo: datos.correspondencia }, {
           estado: Constantes.ESTADOS.ANULADA,
           motivo_anulacion: String(datos.descripcion).trim().slice(0, 300),
         });
       }
       d.excepciones.agregar({
-        fecha: d.ahora(), codigo: datos.codigo,
+        fecha: d.ahora(), codigo: datos.codigo, tipo: datos.correspondencia,
         descripcion: (datos.tipo === 'ANULACION' ? '[ANULACIÓN] ' : '') + String(datos.descripcion).trim(),
         accion_correctiva: String(datos.accion).trim(),
         responsable: usuario, autorizado_por: String(datos.autorizadoPor).trim(),
       });
-      d.auditoria.registrar(usuario, 'EXCEPCION_' + datos.tipo, datos.codigo, String(datos.autorizadoPor).trim());
+      d.auditoria.registrar(usuario, 'EXCEPCION_' + datos.tipo, datos.codigo, datos.correspondencia + ' | ' + String(datos.autorizadoPor).trim());
       return { codigo: datos.codigo, tipo: datos.tipo };
     } finally {
       lock.releaseLock();

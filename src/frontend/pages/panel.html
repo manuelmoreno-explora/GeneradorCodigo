@@ -4,16 +4,14 @@
 
   <p id="panel-carga" role="status" class="mt-4 text-sm text-slate-600">Cargando…</p>
 
-  <dl id="panel-cifras" hidden class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-    <div class="card !p-4"><dt class="text-xs text-slate-600">Último consecutivo</dt><dd id="p-contador" class="text-3xl font-bold text-brand-700"></dd></div>
-    <div class="card !p-4"><dt class="text-xs text-slate-600">Completadas</dt><dd id="p-completadas" class="text-3xl font-bold"></dd></div>
-    <div class="card !p-4"><dt class="text-xs text-slate-600">Anuladas</dt><dd id="p-anuladas" class="text-3xl font-bold"></dd></div>
-    <div class="card !p-4"><dt class="text-xs text-slate-600">Recepción / Entrega</dt><dd id="p-tipos" class="text-3xl font-bold"></dd></div>
+  <dl id="panel-cifras" hidden class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div class="card !p-4"><dt class="text-xs text-slate-600">Último consecutivo · Recibida</dt><dd id="p-contador-RECEPCION" class="text-3xl font-bold text-brand-700"></dd><dd id="p-detalle-RECEPCION" class="mt-1 text-xs text-slate-600"></dd></div>
+    <div class="card !p-4"><dt class="text-xs text-slate-600">Último consecutivo · Enviada</dt><dd id="p-contador-ENTREGA" class="text-3xl font-bold text-brand-700"></dd><dd id="p-detalle-ENTREGA" class="mt-1 text-xs text-slate-600"></dd></div>
   </dl>
 
   <div class="card mt-4" id="panel-validar" hidden>
     <h2 class="text-lg font-semibold">Validar secuencia</h2>
-    <p class="mt-1 text-sm text-slate-600">Revisa que no haya huecos ni duplicados y que el contador coincida con el registro.</p>
+    <p class="mt-1 text-sm text-slate-600">Recibida y enviada llevan secuencias independientes. Revisa que no haya huecos ni duplicados y que el contador coincida con el registro (los números anteriores a la app no cuentan como faltantes).</p>
     <p id="panel-ultima" class="mt-2 text-sm text-slate-600"></p>
     <div class="mt-4 flex flex-wrap gap-3">
       <button type="button" id="btn-validar" class="btn-primary">Validar ahora</button>

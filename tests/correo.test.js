@@ -22,7 +22,7 @@ describe('Reglas.validarCorreo', () => {
 function entorno(config = {}) {
   const f = crearDepsFalsas();
   const r = SecuenciaService.reservar('ENTREGA', 'a@x.org', f);
-  SecuenciaService.completar(r.codigo, { archivo_id: 'f1' }, 'a@x.org', f);
+  SecuenciaService.completar(r, { archivo_id: 'f1' }, 'a@x.org', f);
   const enviados = [];
   const cfg = { CORREO_HABILITADO: 'SI', ...config };
   const d = {
@@ -40,37 +40,37 @@ function entorno(config = {}) {
 describe('CorreoService.enviar', () => {
   test('envía el PDF adjunto desde el usuario y deja auditoría con destinatario', () => {
     const { f, d, enviados } = entorno();
-    const r = CorreoService.enviar('26-001', 'Dest@Empresa.com', 'a@x.org', d);
+    const r = CorreoService.enviar('26-001', 'ENTREGA', 'Dest@Empresa.com', 'a@x.org', d);
     expect(r.destinatario).toBe('dest@empresa.com');
     expect(enviados).toHaveLength(1);
     expect(enviados[0]).toMatchObject({ to: 'dest@empresa.com', replyTo: 'a@x.org' });
     expect(enviados[0].attachments[0].nombre).toBe('TYC-Correspondencia enviada 26-001.pdf');
     expect(enviados[0].subject).toContain('26-001');
     const aud = f.estado.auditoria.find((a) => a[1] === 'ENVIO_CORREO');
-    expect(aud.slice(2)).toEqual(['26-001', 'dest@empresa.com']);
+    expect(aud.slice(2)).toEqual(['26-001', 'ENTREGA | dest@empresa.com']);
   });
   test('deshabilitado por configuración', () => {
     const { d, enviados } = entorno({ CORREO_HABILITADO: 'NO' });
-    expect(() => CorreoService.enviar('26-001', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'CORREO_DESHABILITADO' }));
+    expect(() => CorreoService.enviar('26-001', 'ENTREGA', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'CORREO_DESHABILITADO' }));
     expect(enviados).toHaveLength(0);
   });
   test('destinatario inválido o dominio no permitido no envía nada', () => {
     const { d, enviados } = entorno({ CORREO_DOMINIOS_PERMITIDOS: 'parqueexplora.org' });
-    expect(() => CorreoService.enviar('26-001', 'x', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'CORREO_INVALIDO' }));
-    expect(() => CorreoService.enviar('26-001', 'a@gmail.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'DOMINIO_NO_PERMITIDO' }));
+    expect(() => CorreoService.enviar('26-001', 'ENTREGA', 'x', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'CORREO_INVALIDO' }));
+    expect(() => CorreoService.enviar('26-001', 'ENTREGA', 'a@gmail.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'DOMINIO_NO_PERMITIDO' }));
     expect(enviados).toHaveLength(0);
   });
   test('solo radicados completados', () => {
     const { f, d } = entorno();
-    SecuenciaService.anular('26-001', 'x', 'a', f);
-    expect(() => CorreoService.enviar('26-001', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'NO_COMPLETADA' }));
-    expect(() => CorreoService.enviar('26-099', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'NO_COMPLETADA' }));
-    expect(() => CorreoService.enviar('xx', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'CODIGO_INVALIDO' }));
+    SecuenciaService.anular({ codigo: '26-001', tipo: 'ENTREGA' }, 'x', 'a', f);
+    expect(() => CorreoService.enviar('26-001', 'ENTREGA', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'NO_COMPLETADA' }));
+    expect(() => CorreoService.enviar('26-099', 'ENTREGA', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'NO_COMPLETADA' }));
+    expect(() => CorreoService.enviar('xx', 'ENTREGA', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'CODIGO_INVALIDO' }));
   });
   test('sin cuota diaria no envía', () => {
     const { d, enviados } = entorno();
     d.cuota = () => 0;
-    expect(() => CorreoService.enviar('26-001', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'SIN_CUOTA' }));
+    expect(() => CorreoService.enviar('26-001', 'ENTREGA', 'a@b.com', 'a@x.org', d)).toThrow(expect.objectContaining({ codigo: 'SIN_CUOTA' }));
     expect(enviados).toHaveLength(0);
   });
 });

@@ -23,11 +23,11 @@ Hoy la app corre en **PRUEBAS** (carpeta `1moTBf2EqGkDePp3DoqRyebY8TUU4rtbq`, cu
 | `TAMANO_MAX_MB`, `SELLO_*` | ajustar tras pruebas con documentos reales |
 | `CORREO_HABILITADO` | `SI` para mostrar el botón "Enviar por correo" (por defecto `NO`); `CORREO_DOMINIOS_PERMITIDOS` opcional para limitar destinos |
 
-> `setup()` decide la carpeta raíz así: (1) si el Sheet ya existe, el valor `DRIVE_RAIZ_ID` de `Config`; (2) si no, la propiedad del script `DRIVE_RAIZ_ID_INICIAL`; (3) si no, la carpeta de pruebas. En la cuenta definitiva, **antes de ejecutar `setup()`**, crear en el editor (Configuración del proyecto → Propiedades de la secuencia de comandos) la propiedad `DRIVE_RAIZ_ID_INICIAL` = `1R1P4TtD_1mekDo7taMbJgiZjs3wptNoH`, y poner `AMBIENTE` en `PRODUCCION` después.
+> `setup()` decide la carpeta raíz así: (1) si el Sheet ya existe, el valor `DRIVE_RAIZ_ID` de `Config`; (2) si no, la propiedad del script `DRIVE_RAIZ_ID_INICIAL`; (3) si no, la carpeta de pruebas. En la cuenta definitiva, **antes de ejecutar `setup()`**, crear en el editor (Configuración del proyecto → Propiedades de la secuencia de comandos) la propiedad `DRIVE_RAIZ_ID_INICIAL` = `1R1P4TtD_1mekDo7taMbJgiZjs3wptNoH`, y también `AMBIENTE_INICIAL` = `PRODUCCION` (la hoja `Config` nace en producción y `setup()` nunca crea carpetas: si no encuentra `TYC-CORRESPONDENCIA RECIBIDA` / `ENVIADA` por nombre exacto, falla con un mensaje claro).
 
 ## 3. Datos
 - [ ] Ejecutar `limpiarDatosDePrueba()` **solo en PRUEBAS**, antes de cambiar `AMBIENTE`. En producción esa función está bloqueada.
-- [ ] Si ya existen radicados manuales del año en curso, definir con Gestión Documental el consecutivo inicial: poner el último consecutivo usado en la hoja `Secuencias` (año, último) **y** una fila coherente en `Operaciones` (o importar el histórico) para que la validación no marque huecos.
+- [ ] Consecutivos iniciales (hay radicados manuales este año): en la hoja `Config` poner `CONSECUTIVO_INICIAL_RECEPCION` y `CONSECUTIVO_INICIAL_ENTREGA` = último número ya usado a mano en cada carpeta (21-oct-2026: recibida 134, enviada 567) y ejecutar `inicializarConsecutivos()`. El próximo código será ese número + 1. Verificar con `verificarSecuenciaManual()` o en el Panel.
 - [ ] Ejecutar `instalarTriggerValidacion()`.
 
 ## 4. Permisos

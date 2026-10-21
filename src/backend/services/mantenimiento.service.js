@@ -31,8 +31,8 @@ var MantenimientoService = {
       .map((o) => ({ codigo: o.codigo, tipo: o.tipo, usuario: o.usuario }));
   },
 
-  /** @returns {{resultado:string, mensaje:string}} */
-  resolver(codigo, usuario, deps) {
+  /** @param {{codigo:string, tipo:string}} ref @returns {{resultado:string, mensaje:string}} */
+  resolver(ref, usuario, deps) {
     const d = deps || MantenimientoService.deps();
     if (!Reglas.autorizado(usuario, d.autorizados())) {
       throw new ErrorNegocio('No tienes autorización para resolver reservas.', 'NO_AUTORIZADO');
@@ -41,21 +41,22 @@ var MantenimientoService = {
     lock.waitLock(30000);
     try {
       const atasco = d.atascadas ? d.atascadas() : MantenimientoService.atascadas(d);
-      const reserva = atasco.find((r) => r.codigo === codigo);
+      const reserva = atasco.find((r) => r.codigo === ref.codigo && r.tipo === ref.tipo);
       if (!reserva) throw new ErrorNegocio('Ese código no figura como reserva atascada.', 'NO_ATASCADA');
-      const p = Codigo.parsear(codigo);
+      const p = Codigo.parsear(ref.codigo);
+      const codigo = ref.codigo;
       const archivo = d.drive.buscar(reserva.tipo, Codigo.nombreArchivo(reserva.tipo, codigo));
 
       if (archivo) {
-        d.secuencia.completar(codigo, { archivo_id: archivo.id, archivo_url: archivo.url }, usuario, d.secuenciaDeps);
+        d.secuencia.completar(reserva, { archivo_id: archivo.id, archivo_url: archivo.url }, usuario, d.secuenciaDeps);
         d.auditoria.registrar(usuario, 'RECUPERAR', codigo, 'Archivo encontrado en Drive; registro completado');
         return { resultado: 'COMPLETADA', mensaje: 'El archivo ya estaba en Drive; el registro quedó completado.' };
       }
       const liberada = d.secuencia.liberarEnLock(
-        { codigo, anio: p.anio, consecutivo: p.consecutivo }, 'Reserva atascada sin archivo', usuario, d.secuenciaDeps
+        { codigo, anio: p.anio, consecutivo: p.consecutivo, tipo: reserva.tipo }, 'Reserva atascada sin archivo', usuario, d.secuenciaDeps
       );
       if (liberada) return { resultado: 'LIBERADA', mensaje: 'No había archivo; el número se devolvió a la secuencia.' };
-      d.secuencia.anular(codigo, 'Reserva atascada sin archivo', usuario, d.secuenciaDeps);
+      d.secuencia.anular(reserva, 'Reserva atascada sin archivo', usuario, d.secuenciaDeps);
       return { resultado: 'ANULADA', mensaje: 'No había archivo y ya existen códigos posteriores; el código quedó anulado y registrado.' };
     } finally {
       lock.releaseLock();

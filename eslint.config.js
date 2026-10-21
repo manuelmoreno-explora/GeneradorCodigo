@@ -16,7 +16,7 @@ module.exports = [
         Auditoria: 'readonly', SecuenciaService: 'readonly', Sello: 'readonly', PdfService: 'readonly',
         DriveService: 'readonly', OperacionService: 'readonly', AuthService: 'readonly', iniciarOperacion: 'readonly', EstadosOperacion: 'readonly',
         Busqueda: 'readonly', Csv: 'readonly', ExcepcionesRepo: 'readonly', ExcepcionService: 'readonly',
-        MantenimientoService: 'readonly', CorreoService: 'readonly', MailApp: 'readonly', PanelService: 'readonly', errorParaCliente_: 'readonly' },
+        MantenimientoService: 'readonly', CorreoService: 'readonly', inicializarConsecutivos: 'readonly', MailApp: 'readonly', PanelService: 'readonly', errorParaCliente_: 'readonly' },
     },
     rules: { 'no-unused-vars': 'off', 'no-undef': 'error', eqeqeq: 'error' },
   },

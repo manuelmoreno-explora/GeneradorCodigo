@@ -1,4 +1,8 @@
-/** Registro-evidencia de todos los códigos. Las filas nunca se borran; solo cambia el estado. */
+/**
+ * Registro-evidencia de todos los códigos. Cada tipo (RECEPCION/ENTREGA) lleva su propia secuencia,
+ * por lo que un mismo código (p. ej. 26-134) puede existir una vez por tipo: la llave es {codigo, tipo}.
+ * Las filas nunca se borran; solo cambia el estado.
+ */
 var OperacionesRepo = {
   _col(nombre) {
     return Constantes.ENCABEZADOS.Operaciones.indexOf(nombre);
@@ -37,22 +41,25 @@ var OperacionesRepo = {
     });
   },
 
-  /** Mayor consecutivo registrado del año (0 si no hay). */
-  maximo(anio) {
-    return OperacionesRepo.listarPorAnio(anio).reduce((m, o) => Math.max(m, Number(o.consecutivo)), 0);
+  /** Mayor consecutivo registrado del año para ese tipo (0 si no hay). */
+  maximo(anio, tipo) {
+    return OperacionesRepo.listarPorAnio(anio)
+      .filter((o) => o.tipo === tipo)
+      .reduce((m, o) => Math.max(m, Number(o.consecutivo)), 0);
   },
 
   /**
-   * Elimina la fila de un código. Uso exclusivo de SecuenciaService.liberarEnLock para reservas que
-   * nunca llegaron a Drive (deja constancia en Auditoria). Nunca para operaciones COMPLETADA.
+   * Elimina la reserva de {codigo, tipo}. Uso exclusivo de SecuenciaService.liberarEnLock para
+   * reservas que nunca llegaron a Drive (deja constancia en Auditoria). Nunca para COMPLETADA.
    */
-  eliminar(codigo) {
+  eliminar(ref) {
     const hoja = ConfigRepo.hoja(Constantes.HOJAS.OPERACIONES);
     const datos = hoja.getDataRange().getValues();
     const colCodigo = OperacionesRepo._col('codigo');
+    const colTipo = OperacionesRepo._col('tipo');
     const colEstado = OperacionesRepo._col('estado');
     for (let i = datos.length - 1; i >= 1; i--) {
-      if (datos[i][colCodigo] === codigo) {
+      if (datos[i][colCodigo] === ref.codigo && datos[i][colTipo] === ref.tipo) {
         if (datos[i][colEstado] !== Constantes.ESTADOS.RESERVADO) {
           throw new ErrorSistema('Solo se puede eliminar una reserva sin completar.', 'ELIMINAR_PROHIBIDO');
         }
@@ -63,13 +70,14 @@ var OperacionesRepo = {
     return false;
   },
 
-  /** Actualiza columnas de la fila con ese código. @returns {boolean} si la encontró */
-  actualizar(codigo, campos) {
+  /** Actualiza columnas de la fila {codigo, tipo}. @returns {boolean} si la encontró */
+  actualizar(ref, campos) {
     const hoja = ConfigRepo.hoja(Constantes.HOJAS.OPERACIONES);
     const datos = hoja.getDataRange().getValues();
     const colCodigo = OperacionesRepo._col('codigo');
+    const colTipo = OperacionesRepo._col('tipo');
     for (let i = 1; i < datos.length; i++) {
-      if (datos[i][colCodigo] === codigo) {
+      if (datos[i][colCodigo] === ref.codigo && datos[i][colTipo] === ref.tipo) {
         Object.keys(campos).forEach((c) => {
           const col = OperacionesRepo._col(c);
           if (col >= 0) hoja.getRange(i + 1, col + 1).setValue(campos[c]);

@@ -75,7 +75,7 @@ var OperacionService = {
       const nombre = Codigo.nombreArchivo(tipo, reserva.codigo);
       archivo = d.drive.guardar(tipo, nombre, d.aSigno(estampado));
       d.secuencia.completar(
-        reserva.codigo,
+        reserva,
         {
           archivo_id: archivo.id, archivo_url: archivo.url,
           hash_original: d.hash(bytes), hash_estampado: d.hash(estampado),
@@ -105,7 +105,7 @@ var OperacionService = {
     if (!reserva) return;
     try {
       const liberada = d.secuencia.liberarEnLock(reserva, motivo, usuario, d.secuenciaDeps);
-      if (!liberada) d.secuencia.anular(reserva.codigo, motivo, usuario, d.secuenciaDeps);
+      if (!liberada) d.secuencia.anular(reserva, motivo, usuario, d.secuenciaDeps);
     } catch (e3) {
       // queda RESERVADO y SecuenciaService.verificar lo reporta para revisión manual
     }
